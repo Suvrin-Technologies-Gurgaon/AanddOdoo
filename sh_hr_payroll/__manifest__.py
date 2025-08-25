@@ -11,8 +11,10 @@
     "description": """This module helps to manage the payroll of your organization. You can manage employee contracts with a salary structure. You can create an employee payslip and compute employee salary with salary structures & salary rules. You can generate all payslips using payslip batches.""",
     "version": "0.0.1",
     "depends": [
+        "hr",
         "hr_contract",
         "hr_holidays",
+        "hr_employee_updation"
     ],
     "data": [
         "security/hr_payroll_security.xml",
