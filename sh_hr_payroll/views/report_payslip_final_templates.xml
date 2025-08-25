@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_payslip_final">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <div style="text-align: center; line-height: 1.3; font-family: 'DejaVu Sans', sans-serif;">
+                            <span style="font-weight: bold; font-size: 20px; display: block;">Pay Slip</span>
+                            <span style="font-weight: bold; font-size: 16px; display: block;">
+                                for
+                                <t t-esc="o.date_from.strftime('%B-%Y')"/>
+                            </span>
+                            <span style="font-weight: bold; font-size: 20px; display: block;">
+                                <t t-esc="o.employee_id.name"/>
+                            </span>
+                        </div>
+                        <hr style="border: 1px solid black; background-color: #000; margin: 5px 0;"/>
+                        <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 13px; width: 100%;">
+                            <div style="width: 100%; display: table; margin-bottom: 6px;">
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Employee
+                                        Number
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">Tax Regime
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                            </div>
+
+                            <div style="width: 100%; display: table; margin-bottom: 6px;">
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Function
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">Income Tax
+                                        Number (PAN)
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                            </div>
+
+                            <div style="width: 100%; display: table;">
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Designation
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.job_id.name" style="padding-left: 5px;"/>
+                                </div>
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">Universal
+                                        Account Number (UAN)
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                            </div>
+                            <div style="width: 100%; display: table; margin-bottom: 6px;">
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Location
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.work_location_id.name" style="padding-left: 5px;"/>
+                                </div>
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">
+                                        PF account number
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                            </div>
+                            <div style="width: 100%; display: table; margin-bottom: 6px;">
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Bank Details
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.bank_account_id.acc_number"
+                                          style="padding-left: 5px;"/>
+                                </div>
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">
+                                        ESI Number
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                            </div>
+                            <div style="width: 100%; display: table; margin-bottom: 6px;">
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Date of
+                                        joining
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                                <div style="display: table-cell; width: 50%; white-space: nowrap;">
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">
+                                        PR Account Number (PRAN)
+                                    </strong>
+                                    <span>:</span>
+                                    <span t-field="o.employee_id.name" style="padding-left: 5px;"/>
+                                </div>
+                            </div>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; font-family: 'DejaVu Sans'; font-size: 13px; border: 1px solid black;">
+                            <thead>
+                                <tr>
+                                    <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">
+                                        Earnings
+                                    </th>
+                                    <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">
+                                        Amount
+                                    </th>
+                                    <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">
+                                        Gross Salary
+                                    </th>
+                                    <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: left;">
+                                        Deductions
+                                    </th>
+                                    <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">
+                                        Amount
+                                    </th>
+                                    <th style="border: 1px solid black; padding: 6px; font-weight: bold; text-align: right;">
+                                        Gross Salary
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Separate earnings vs deductions -->
+                                <t t-set="earn_lines" t-value="[l for l in o.line_ids if l.category_id.code != 'DED']"/>
+                                <t t-set="ded_lines" t-value="[l for l in o.line_ids if l.category_id.code == 'DED']"/>
+
+                                <!-- ==== Build expanded earnings: one row per department ==== -->
+                                <t t-set="expanded_earnings" t-value="[]"/>
+                                <t t-foreach="earn_lines" t-as="e">
+                                    <t t-if="o.employee_id.category_ids">
+                                        <t t-foreach="o.employee_id.category_ids" t-as="dept">
+                                            <t t-set="dummy" t-value="expanded_earnings.append((e, dept))"/>
+                                        </t>
+                                    </t>
+                                    <t t-if="not o.employee_id.category_ids">
+                                        <t t-set="dummy" t-value="expanded_earnings.append((e, False))"/>
+                                    </t>
+                                </t>
+
+                                <!-- ==== Group deductions by rule only ==== -->
+                                <t t-set="grouped_deductions" t-value="{}"/>
+                                <t t-foreach="ded_lines" t-as="dline">
+                                    <t t-set="rule" t-value="dline.salary_rule_id.name"/>
+                                    <t t-if="rule not in grouped_deductions">
+                                        <t t-set="dummy" t-value="grouped_deductions.update({rule: []})"/>
+                                    </t>
+                                    <t t-set="dummy" t-value="grouped_deductions[rule].append(dline)"/>
+                                </t>
+
+                                <t t-set="ded_keys" t-value="list(grouped_deductions.keys())"/>
+                                <t t-set="max_len" t-value="max(len(expanded_earnings), len(ded_keys))"/>
+
+                                <!-- ==== Show side by side ==== -->
+                                <t t-foreach="range(max_len)" t-as="i">
+                                    <tr>
+                                        <!-- Earnings -->
+                                        <t t-if="i &lt; len(expanded_earnings)">
+                                            <t t-set="pair" t-value="expanded_earnings[i]"/>
+                                            <t t-set="e" t-value="pair[0]"/>
+                                            <t t-set="dept" t-value="pair[1]"/>
+                                            <td style="padding: 6px; border-left: 1px solid black; text-align: left;">
+                                                <t t-esc="e.salary_rule_id.name"/>
+                                                <t t-if="dept">(<t t-esc="dept.name"/>)
+                                                </t>
+                                            </td>
+                                            <td style="padding: 6px; text-align: right;">
+                                                <t t-esc="e.total"/>
+                                            </td>
+                                            <td style="padding: 6px; text-align: right;">
+                                                <t t-esc="e.total"/>
+                                            </td>
+                                        </t>
+                                        <t t-if="i &gt;= len(expanded_earnings)">
+                                            <td style="padding: 6px; border-left: 1px solid black;"></td>
+                                            <td></td>
+                                            <td></td>
+                                        </t>
+
+                                        <!-- Deductions -->
+                                        <t t-if="i &lt; len(ded_keys)">
+                                            <t t-set="rule" t-value="ded_keys[i]"/>
+                                            <t t-set="dlist" t-value="grouped_deductions[rule]"/>
+                                            <td style="padding: 6px; text-align: left;">
+                                                <t t-esc="rule"/>
+                                            </td>
+                                            <td style="padding: 6px; text-align: right;">
+                                                <t t-esc="sum(l.total for l in dlist)"/>
+                                            </td>
+                                            <td style="padding: 6px; border-right: 1px solid black; text-align: right;">
+                                                <t t-esc="sum(l.total for l in dlist)"/>
+                                            </td>
+                                        </t>
+                                        <t t-if="i &gt;= len(ded_keys)">
+                                            <td></td>
+                                            <td></td>
+                                            <td style="border-right: 1px solid black;"></td>
+                                        </t>
+                                    </tr>
+                                </t>
+
+                                <!-- Totals -->
+                                <t t-set="earn_total_dept" t-value="sum(p[0].total for p in expanded_earnings)"/>
+                                <t t-set="ded_total" t-value="sum(l.total for l in ded_lines)"/>
+                                <t t-set="net_amount" t-value="earn_total_dept - ded_total"/>
+                                <t t-set="net_amount_rounded" t-value="int(round(net_amount))"/>
+
+                                <tr style="font-weight: bold; border-top: 1px solid black;">
+                                    <td style="padding: 6px; border: 1px solid black;">Total Earnings</td>
+                                    <td style="padding: 6px; border: 1px solid black; text-align: right;">
+                                        <t t-esc="earn_total_dept"/>
+                                    </td>
+                                    <td style="padding: 6px; border: 1px solid black; text-align: right;">
+                                        <t t-esc="earn_total_dept"/>
+                                    </td>
+                                    <td style="padding: 6px; border: 1px solid black;">Total Deductions</td>
+                                    <td style="padding: 6px; border: 1px solid black; text-align: right;">
+                                        <t t-esc="ded_total"/>
+                                    </td>
+                                    <td style="padding: 6px; border: 1px solid black; text-align: right;">
+                                        <t t-esc="ded_total"/>
+                                    </td>
+                                </tr>
+
+                                <!-- Net Amount -->
+                                <tr style="font-weight: bold; border-top: 1px solid black;">
+                                    <td colspan="3" style="border-left: 1px solid black;"></td>
+                                    <td style="padding: 6px; border: 1px solid black;">Net Amount</td>
+                                    <td colspan="2" style="padding: 6px; border: 1px solid black; text-align: right;">
+                                        <t t-esc="net_amount"/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- ==== Amount in Words ==== -->
+                        <t t-set="amt_words" t-value="o.company_id.currency_id.amount_to_text(net_amount_rounded)"/>
+                        <t t-set="amt_words"
+                           t-value="amt_words.replace('Dollar', 'Rupee').replace('Dollars', 'Rupees')"/>
+                        <t t-set="words_main"
+                           t-value="(amt_words.split('Rupee')[0].strip() if 'Rupee' in amt_words else amt_words)"/>
+
+                        <!-- Line 1 -->
+                        <div style="display:flex; justify-content:space-between; margin-top:10px; font-family:'DejaVu Sans'; font-size:13px;">
+                            <div>
+                                <strong>Amount (in words):</strong>
+                            </div>
+                            <div style="font-weight:bold; white-space:nowrap; text-align:right;">
+                                for
+                                <t t-esc="o.company_id.name"/>
+                            </div>
+                        </div>
+
+                        <!-- Line 2 -->
+                        <div style="font-family:'DejaVu Sans'; font-size:13px; text-align:left;">
+                            Indian Rupees
+                            <t t-esc="words_main.title()"/>
+                            Only
+                        </div>
+
+                        <p class="text-end">
+                            <strong>Authorized signature</strong>
+                        </p>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
