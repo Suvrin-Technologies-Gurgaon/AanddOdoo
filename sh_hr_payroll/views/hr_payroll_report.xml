@@ -27,4 +27,14 @@
         <field name="binding_type">report</field>
         <field name="print_report_name">'PaySlip Details'</field>
     </record>
+
+    <record id="report_action_payslip_final" model="ir.actions.report">
+        <field name="name">Payslip Final</field>
+        <field name="model">hr.payslip</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">sh_hr_payroll.report_payslip_final</field>
+        <field name="binding_model_id" ref="model_hr_payslip" />
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'PaySlip Final'</field>
+    </record>
 </odoo>

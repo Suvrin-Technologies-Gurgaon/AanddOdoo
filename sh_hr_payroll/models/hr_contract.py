@@ -31,6 +31,7 @@ class HrContract(models.Model):
     resource_calendar_id = fields.Many2one(
         required=True, help="Employee's working schedule."
     )
+    management_allowance = fields.Monetary(string="Management Allowance")
 
     def get_all_structures(self):
         """
