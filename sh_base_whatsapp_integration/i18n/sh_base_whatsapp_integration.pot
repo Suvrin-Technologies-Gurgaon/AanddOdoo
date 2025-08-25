@@ -1,0 +1,183 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* sh_base_whatsapp_integration
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 15.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-03-19 13:02+0000\n"
+"PO-Revision-Date: 2021-03-19 13:02+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: sh_base_whatsapp_integration
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_message_form
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_number_form
+msgid ""
+"<strong>Note:</strong><br/>\n"
+"                            1) Use *text* to make text bold.<br/>\n"
+"                            2) Use _text_ to make text italic.<br/>\n"
+"                            3) Use %0A after/before Text if you want to add blank line.<br/>\n"
+"                            4) use %20 after/before any Text if you want to give space.<br/>\n"
+"                            5) go to users =&gt; preferences to add signature."
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__attachment_ids
+msgid "Attachments"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_message_form
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_number_form
+msgid "Cancel"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model,name:sh_base_whatsapp_integration.model_res_partner
+msgid "Contact"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__create_uid
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__create_uid
+msgid "Created by"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__create_date
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__create_date
+msgid "Created on"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_mail_compose_message__display_name
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_partner__display_name
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_users__display_name
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__display_name
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model,name:sh_base_whatsapp_integration.model_mail_compose_message
+msgid "Email composition wizard"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_mail_compose_message__id
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_partner__id
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_users__id
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__id
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__id
+msgid "ID"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_account_invoice_send__is_wp
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_account_tour_upload_bill__is_wp
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_mail_compose_message__is_wp
+msgid "Is whatsapp ?"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_mail_compose_message____last_update
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_partner____last_update
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_users____last_update
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard____last_update
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard____last_update
+msgid "Last Modified on"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__write_uid
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__write_date
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__crm_lead_id
+msgid "Lead"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__message
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__message
+msgid "Message"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: code:addons/sh_base_whatsapp_integration/wizard/send_whatsapp_message.py:0
+#, python-format
+msgid "Partner Mobile Number Not Exist"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_message_wizard__partner_ids
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__partner_ids
+msgid "Recipients"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_message_form
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_number_form
+msgid "Send"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_email_compose_form_mass_mailing
+msgid "Send By Whatsapp"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.ui.menu,name:sh_base_whatsapp_integration.menu_subwhatsapp_number
+#: model:ir.ui.menu,name:sh_base_whatsapp_integration.menu_whatsapp_number
+#: model:ir.ui.menu,name:sh_base_whatsapp_integration.submenu_whatsapp_number
+msgid "Send Whatsapp"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.actions.act_window,name:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_message_action
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_message_form
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_whatsapp_integration_partner_form
+msgid "Send Whatsapp Message"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:res.groups,name:sh_base_whatsapp_integration.group_send_whatsapp_quick
+msgid "Send Whatsapp Quick"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model,name:sh_base_whatsapp_integration.model_sh_base_send_whatsapp_message_wizard
+#: model:ir.model,name:sh_base_whatsapp_integration.model_sh_base_send_whatsapp_number_wizard
+msgid "Send whatsapp message wizard"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_res_users__sign
+msgid "Signature"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.model,name:sh_base_whatsapp_integration.model_res_users
+msgid "Users"
+msgstr ""
+
+#. module: sh_base_whatsapp_integration
+#: model:ir.actions.act_window,name:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_number_action
+#: model:ir.model.fields,field_description:sh_base_whatsapp_integration.field_sh_base_send_whatsapp_number_wizard__whatsapp_mobile
+#: model_terms:ir.ui.view,arch_db:sh_base_whatsapp_integration.sh_base_whatsapp_integration_send_whatsapp_number_form
+msgid "Whatsapp Number"
+msgstr ""
