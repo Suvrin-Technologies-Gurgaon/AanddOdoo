@@ -251,14 +251,9 @@
                             </tbody>
                         </table>
 
-                        <!-- ==== Amount in Words ==== -->
+                        <!-- Amount in Words Block -->
                         <t t-set="amt_words" t-value="o.company_id.currency_id.amount_to_text(net_amount_rounded)"/>
-                        <t t-set="amt_words"
-                           t-value="amt_words.replace('Dollar', 'Rupee').replace('Dollars', 'Rupees')"/>
-                        <t t-set="words_main"
-                           t-value="(amt_words.split('Rupee')[0].strip() if 'Rupee' in amt_words else amt_words)"/>
 
-                        <!-- Line 1 -->
                         <div style="display:flex; justify-content:space-between; margin-top:10px; font-family:'DejaVu Sans'; font-size:13px;">
                             <div>
                                 <strong>Amount (in words):</strong>
@@ -269,11 +264,8 @@
                             </div>
                         </div>
 
-                        <!-- Line 2 -->
                         <div style="font-family:'DejaVu Sans'; font-size:13px; text-align:left;">
-                            Indian Rupees
-                            <t t-esc="words_main.title()"/>
-                            Only
+                            <t t-esc="amt_words"/>
                         </div>
 
                         <p class="text-end">
