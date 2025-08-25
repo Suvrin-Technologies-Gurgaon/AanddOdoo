@@ -67,6 +67,11 @@ class HrEmployee(models.Model):
     bank_name = fields.Char(string="Bank Name")
     bank_branch = fields.Char(string="Branch")
     ifsc_code = fields.Char(string="IFSC Code")
+    date_of_joining = fields.Date(string="Date of joining")
+    tax_regime = fields.Char(string="Tax Regime")
+    pf_account_number = fields.Char(string="PF account number")
+    pf_joining_date = fields.Date(string="PF Joining Date")
+    pr_account_number = fields.Char(string="PR Account Number (PRAN)")
 
     @api.depends('contract_id')
     def _compute_joining_date(self):
