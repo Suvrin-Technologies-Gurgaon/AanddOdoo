@@ -50,11 +50,11 @@
 
                     <field name="pan_card_no"/>
                     <field name="uan_no"/>
-<!--                    <field name="date_of_joining"/>-->
-<!--                    <field name="tax_regime"/>-->
-<!--                    <field name="pf_account_number"/>-->
-<!--                    <field name="pf_joining_date"/>-->
-<!--                    <field name="pr_account_number"/>-->
+                    <field name="date_of_joining"/>
+                    <field name="tax_regime"/>
+                    <field name="pf_account_number"/>
+                    <field name="pf_joining_date"/>
+                    <field name="pr_account_number"/>
                 </group>
                 <group name="passport_id" string="Passport ID">
                     <field name="passport_id"/>
