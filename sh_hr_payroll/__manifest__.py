@@ -29,6 +29,7 @@
         "views/res_config_settings_views.xml",
         "views/report_contributionregister_templates.xml",
         "views/report_payslip_templates.xml",
+        "views/report_payslip_final_templates.xml",
         "views/report_payslipdetails_templates.xml",
     ],
     "demo": ["data/hr_payroll_demo.xml"],
