@@ -12,14 +12,14 @@
                     <field name="payslip_count" widget="statinfo" string="Payslips"/>
                 </button>
             </xpath>
-            <xpath expr="//page[@name='personal_information']//group[@name='identification_id']"
-                   position="inside">
-                <field name="date_of_joining"/>
-                <field name="tax_regime"/>
-                <field name="pf_account_number"/>
-                <field name="pf_joining_date"/>
-                <field name="pr_account_number"/>
-            </xpath>
+<!--            <xpath expr="//page[@name='personal_information']//group[@name='identification_id']"-->
+<!--                   position="inside">-->
+<!--                <field name="date_of_joining"/>-->
+<!--                <field name="tax_regime"/>-->
+<!--                <field name="pf_account_number"/>-->
+<!--                <field name="pf_joining_date"/>-->
+<!--                <field name="pr_account_number"/>-->
+<!--            </xpath>-->
         </field>
     </record>
 </odoo>
