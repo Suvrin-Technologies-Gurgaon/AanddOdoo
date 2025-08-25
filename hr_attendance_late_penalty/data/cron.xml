@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding='UTF-8'?>
+<odoo>
+	<record id="hr_attendance_early_checkout_cron" model="ir.cron">
+        <field name="name">Attendance: Early Checkout</field>
+        <field name="model_id" ref="model_hr_employee"/>
+        <field name="state">code</field>
+        <field name="code">model._action_trigger_early_checkout_penalty()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+<!--        <field name="active" eval="False"/>-->
+    <field name="nextcall" eval="(datetime.combine(datetime.now().date(), datetime.min.time()) + timedelta(hours=11, minutes=59)).strftime('%Y-%m-%d %H:%M:%S')"/>
+    </record>
+</odoo>
