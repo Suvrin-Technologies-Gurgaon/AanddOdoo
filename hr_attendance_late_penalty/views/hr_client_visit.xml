@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Tree/List View -->
+    <record id="view_hr_client_visit_tree" model="ir.ui.view">
+        <field name="name">hr.client.visit.tree</field>
+        <field name="model">hr.client.visit</field>
+        <field name="arch" type="xml">
+            <list string="Client Visits">
+                <field name="employee_id"/>
+                <field name="start_time"/>
+                <field name="end_time"/>
+                <field name="client_name"/>
+                <field name="location"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_hr_client_visit_form" model="ir.ui.view">
+        <field name="name">hr.client.visit.form</field>
+        <field name="model">hr.client.visit</field>
+        <field name="arch" type="xml">
+            <form string="Client Visit">
+                <header>
+                    <button name="action_submit" type="object" string="Submit"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+
+                    <button name="action_approve" type="object" string="Approve"
+                            class="btn-success"
+                            invisible="state != 'submitted'"/>
+
+                    <button name="action_reject" type="object" string="Reject"
+                            class="btn-danger"
+                            invisible="state != 'submitted'"/>
+
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,submitted,approved,rejected"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="employee_id" readonly="1"/>
+                            <field name="start_time"/>
+                            <field name="end_time"/>
+                        </group>
+                        <group>
+                            <field name="client_name"/>
+                            <field name="location"/>
+                            <field name="purpose"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter reload_on_follower="True"/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_hr_client_visit" model="ir.actions.act_window">
+        <field name="name">Client Visits</field>
+        <field name="res_model">hr.client.visit</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Menu -->
+    <menuitem id="menu_hr_client_visit"
+              name="Client Visits"
+              parent="hr_attendance.menu_hr_attendance_root"
+              action="action_hr_client_visit"/>
+</odoo>

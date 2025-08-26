@@ -237,6 +237,34 @@ class HrAttendance(models.Model):
                 return True
             return False
 
+    def float_to_time(self, hour_float):
+        """Method to convert float to time"""
+        h = int(hour_float)
+        m = int((hour_float - h) * 60)
+        return time(hour=h, minute=m)
+
+    def _check_employee_client_visit(self, employee_id, hour_from, hour_to):
+        """Method to check employee client visit"""
+        today = fields.Date.context_today(employee_id)
+        user_tz = self.env.user.tz or self.env.company.tz or 'UTC'
+        tz = pytz.timezone(user_tz)
+
+        h_from = int(hour_from)
+        m_from = int((hour_from - h_from) * 60)
+        h_to = int(hour_to)
+        m_to = int((hour_to - h_to) * 60)
+
+        work_from = tz.localize(datetime.combine(today, time(hour=h_from, minute=m_from))).astimezone(pytz.UTC)
+        work_to = tz.localize(datetime.combine(today, time(hour=h_to, minute=m_to))).astimezone(pytz.UTC)
+
+        client_visit_obj = self.env['hr.client.visit'].search([
+            ('employee_id', '=', employee_id.id),
+            ('state', '=', 'approved'),
+            ('start_time', '<=', work_to),
+            ('end_time', '>', work_from)
+        ], limit=1)
+        return client_visit_obj
+
     def _is_late_check_in(self):
         for rec in self:
             calendar_resource_attendances = rec._get_resource_calendar_attendance()
@@ -254,6 +282,7 @@ class HrAttendance(models.Model):
             if not actual_check_in_calendar_resource_attendance:
                 actual_check_in_calendar_resource_attendance = min(calendar_resource_attendances.mapped('hour_from'))
             start_hour = actual_check_in_calendar_resource_attendance[0].hour_from
+            end_hour = actual_check_in_calendar_resource_attendance[0].hour_to
             emp_tz = pytz.timezone(rec.employee_id.tz or self.env.user.tz or "UTC")
             check_in_local = fields.Datetime.context_timestamp(rec, rec.check_in).astimezone(emp_tz)
 
@@ -263,8 +292,13 @@ class HrAttendance(models.Model):
                 tzinfo=check_in_local.tzinfo  # match timezone
             )
 
-            if check_in_local > scheduled_start:
-                return True
+            # Check employee client visit
+            client_visit = self._check_employee_client_visit(rec.employee_id, start_hour, end_hour)
+            if not client_visit:
+                if check_in_local > scheduled_start:
+                    return True
+                return None
+        return None
 
     def _deserve_penalty(self):
         for attendance in self:
