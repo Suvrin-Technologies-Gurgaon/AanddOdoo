@@ -5,28 +5,35 @@
         <field name="model">hr.attendance</field>
         <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
         <field name="arch" type="xml">
-
-             <xpath expr="//header" position="inside">
-                 <field name="is_late" invisible="1"/>
-                 <field name="is_send_approval" invisible="1"/>
-                 <field name="is_manager" invisible="1"/>
-                 <field name="is_approved" invisible="1"/>
-                    <button string="Send Approval Request"
-                                type="object" name="action_send_approval_request"
-                                invisible="not is_late or is_send_approval"/>
-                 <button string="Approve"
-                                type="object" name="action_checkin_edit_approve"
-                                invisible="not is_late or not is_send_approval or not is_manager or is_approved"/>
-                </xpath>
-            <xpath expr="//sheet/group[1]" position="before">
-                <widget name="web_ribbon" title="Late" bg_color="text-bg-danger" invisible="not is_late and is_send_approval"/>
-                <widget name="web_ribbon" title="Waiting For Late Edit Approval" bg_color="text-bg-info" invisible="is_late and not is_send_approval"/>
-                <widget name="web_ribbon" title="Late Edit Approved" bg_color="text-bg-success" invisible="not is_approved"/>
-
-
+            <xpath expr="//header" position="inside">
+                <button string="Send Approval Request"
+                        type="object" name="action_send_approval_request"
+                        invisible="not is_late or is_send_approval"/>
+                <button string="Approve"
+                        type="object" name="action_checkin_edit_approve"
+                        invisible="not is_late or not is_send_approval or not is_manager or is_approved"/>
             </xpath>
-
-
+            <xpath expr="//field[@name='check_out']" position="after">
+                <field name="is_late" invisible="1"/>
+                <field name="is_early_checkout" invisible="1"/>
+                <field name="is_send_approval" invisible="1"/>
+                <field name="is_manager" invisible="1"/>
+                <field name="is_approved" invisible="1"/>
+                <field name="leave_id" invisible="1"/>
+                <field name="early_checkout_leave_id" invisible="1"/>
+            </xpath>
+            <xpath expr="//sheet/group[1]" position="before">
+                <widget name="web_ribbon" title="Late" bg_color="text-bg-danger"
+                        invisible="not is_late or is_early_checkout"/>
+                <widget name="web_ribbon" title="Early" bg_color="text-bg-danger"
+                        invisible="not is_early_checkout or is_late"/>
+                <widget name="web_ribbon" title="Late And Early" bg_color="text-bg-danger"
+                        invisible="not (is_late and is_early_checkout)"/>
+                <widget name="web_ribbon" title="Waiting For Late Edit Approval" bg_color="text-bg-info"
+                        invisible="is_late or is_early_checkout and not is_send_approval"/>
+                <widget name="web_ribbon" title="Late Edit Approved" bg_color="text-bg-success"
+                        invisible="not is_approved"/>
+            </xpath>
         </field>
     </record>
 

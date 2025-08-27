@@ -13,19 +13,36 @@ class HrEmployee(models.Model):
         if attendance:
             if not self.resource_calendar_id:
                 raise (_("Your work schedule is not configured yet. Please contact admin."))
-            if attendance.check_out or not attendance.check_in:
-                return attendance
-            first_attendance = self._get_first_or_last_attendance_of_the_day(attendance.check_in)
-            if first_attendance != attendance:
-                return attendance
-            if first_attendance and first_attendance._is_late_check_in():
-                if first_attendance.late_reason != 'late_in':
-                    first_attendance.sudo().write({
-                        'late_reason': 'late_in',
-                        'is_late': True
-                    })
-                first_attendance._create_half_day_penalty_leave()
+            if attendance.check_in and not attendance.check_out:
+                first_attendance = self._get_first_or_last_attendance_of_the_day(attendance.check_in)
+                if first_attendance != attendance:
+                    if first_attendance.employee_id and first_attendance.check_in and first_attendance.check_out:
+                        raise ValidationError(_("%s - Already attendance marked for today", first_attendance.employee_id.name))
+                if first_attendance and first_attendance._is_late_check_in():
+                    if first_attendance.late_reason != 'late_in':
+                        first_attendance.sudo().write({
+                            'late_reason': 'late_in',
+                            'is_late': True
+                        })
+                    first_attendance._create_half_day_penalty_leave()
+            elif attendance.check_in and attendance.check_out:
+                self._check_early_checkout(attendance)
         return attendance
+
+    def _check_early_checkout(self, attendance):
+        """Method to check early check out"""
+        last_attendance = self._get_first_or_last_attendance_of_the_day(attendance.check_out)
+        if last_attendance != attendance:
+            return attendance
+        if last_attendance and last_attendance._is_early_checkout():
+            if last_attendance.late_reason != 'early_out':
+                last_attendance.sudo().write({
+                    'late_reason': 'early_out',
+                    'is_early_checkout': True
+                })
+            last_attendance._create_half_day_penalty_leave()
+            return None
+        return None
 
     def _get_first_or_last_attendance_of_the_day(self, date_to_check, last=False):
         if not date_to_check:
@@ -49,21 +66,21 @@ class HrEmployee(models.Model):
                 return True
         return self.leave_ids.filtered(lambda x: x.request_date_from <= date_to_check.date() <= x.request_date_to
                           and x.state == 'validate' and not x.request_unit_half)
-    @api.model
-    def _action_trigger_early_checkout_penalty(self):
-        employees = self.search([('resource_calendar_id', '!=', False), ('contract_id', '!=', False)])
-        for employee in employees.filtered(lambda x: x.id == 332):
-            if employee._leave_today():
-                continue
-            date_to_check = datetime.now()
-            last_attendance = employee._get_first_or_last_attendance_of_the_day(date_to_check, last=True)
-            if not last_attendance:
-                continue
-            if last_attendance._is_early_checkout():
-                last_attendance.sudo().write({
-                    'late_reason': 'early_out'
-                })
-                last_attendance._create_half_day_penalty_leave()
+    # @api.model
+    # def _action_trigger_early_checkout_penalty(self):
+    #     employees = self.search([('resource_calendar_id', '!=', False), ('contract_id', '!=', False)])
+    #     for employee in employees.filtered(lambda x: x.id == 332):
+    #         if employee._leave_today():
+    #             continue
+    #         date_to_check = datetime.now()
+    #         last_attendance = employee._get_first_or_last_attendance_of_the_day(date_to_check, last=True)
+    #         if not last_attendance:
+    #             continue
+    #         if last_attendance._is_early_checkout():
+    #             last_attendance.sudo().write({
+    #                 'late_reason': 'early_out'
+    #             })
+    #             last_attendance._create_half_day_penalty_leave()
 
     def _check_leave_date(self, date_from, date_to):
         for employee in self:
