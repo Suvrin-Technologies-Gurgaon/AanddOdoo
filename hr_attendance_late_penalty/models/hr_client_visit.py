@@ -1,4 +1,5 @@
-from odoo import models, fields
+from odoo import models, fields, api
+from odoo.exceptions import AccessError, ValidationError
 
 
 class HrClientVisit(models.Model):
@@ -29,3 +30,18 @@ class HrClientVisit(models.Model):
 
     def action_reject(self):
         self.write({'state': 'rejected'})
+
+    @api.constrains('start_time', 'end_time')
+    def _check_validations_date(self):
+        for rec in self:
+            if not rec.start_time or not rec.end_time:
+                continue
+
+            start_date = rec.start_time.date()
+            end_date = rec.end_time.date()
+            if end_date < start_date:
+                raise ValidationError("End date must be greater than Start date.")
+
+            today = fields.Date.context_today(rec)
+            if start_date < today:
+                raise ValidationError("Start date cannot be in the past.")
