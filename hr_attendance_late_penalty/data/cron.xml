@@ -10,4 +10,14 @@
 <!--        <field name="active" eval="False"/>-->
     <field name="nextcall" eval="(datetime.combine(datetime.now().date(), datetime.min.time()) + timedelta(hours=11, minutes=59)).strftime('%Y-%m-%d %H:%M:%S')"/>
     </record>
+
+    <record id="ir_cron_attendance_reminder" model="ir.cron">
+        <field name="name">Attendance Reminder and Auto Checkout</field>
+        <field name="model_id" ref="hr_attendance.model_hr_attendance"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_check_attendance()</field>
+        <field name="interval_number">5</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
+    </record>
 </odoo>

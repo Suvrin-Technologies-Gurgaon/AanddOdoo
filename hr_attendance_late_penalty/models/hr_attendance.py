@@ -7,10 +7,12 @@ from datetime import datetime, timedelta, time
 import pytz
 from markupsafe import Markup
 import calendar
+from pytz import timezone, UTC
 
 
 class HrAttendance(models.Model):
-    _inherit = "hr.attendance"
+    _name = "hr.attendance"
+    _inherit = ["hr.attendance", "mail.thread", "mail.activity.mixin"]
 
     late_reason = fields.Selection([("late_in", "Late In"), ("early_out", "Early Out")], default=False)
     is_late = fields.Boolean("Is Late ?", default=False)
@@ -21,6 +23,119 @@ class HrAttendance(models.Model):
     is_approved = fields.Boolean("Is Approved?", default=False)
     is_manager = fields.Boolean("Is Manager?", compute="_compute_is_manager", default=False)
     approved_user_id = fields.Many2one('res.users', "Approved User")
+    auto_checkout = fields.Boolean(default=False, help="Marked True if auto checkout applied")
+    reminder_sent = fields.Boolean(default=False)
+
+    @api.model
+    def _cron_check_attendance(self):
+        """Cron to remind + auto-checkout employees with timezone-safe handling."""
+        now_utc = fields.Datetime.now()  # naive UTC
+        now_utc_naive = now_utc.replace(tzinfo=None)
+
+        # Get all open attendances
+        open_attendances = self.search([('check_out', '=', False)])
+        res_model_id = self.env['ir.model']._get('hr.attendance').id
+        activity_type = self.env.ref('mail.mail_activity_data_todo')
+
+        for attendance in open_attendances:
+            employee = attendance.employee_id
+            if not employee or not employee.user_id:
+                continue
+
+            # Use employee's timezone, fallback to UTC
+            user_tz = timezone(employee.user_id.tz or 'UTC')
+
+            # Convert check_in to local timezone
+            check_in_local = attendance.check_in.replace(tzinfo=UTC).astimezone(user_tz)
+            today_local = now_utc.replace(tzinfo=UTC).astimezone(user_tz).date()
+
+            # --- Case A: Old attendance (previous days, no checkout)
+            if check_in_local.date() < today_local:
+                old_midnight_local = datetime.combine(
+                    check_in_local.date(),
+                    datetime.max.time()
+                ).replace(hour=23, minute=59, second=59, microsecond=0)
+
+                old_midnight_utc = user_tz.localize(old_midnight_local).astimezone(UTC).replace(tzinfo=None)
+
+                attendance.write({
+                    'check_out': old_midnight_utc,
+                    'auto_checkout': True,
+                })
+                continue
+
+                # --- Case B: Today's attendance
+            calendar = employee.resource_calendar_id
+            if not calendar:
+                continue
+
+            weekday = str(now_utc.replace(tzinfo=UTC).astimezone(user_tz).weekday())
+            shifts_today = calendar.attendance_ids.filtered(lambda s: s.dayofweek == weekday)
+            if not shifts_today:
+                continue
+
+            # Last shift = afternoon shift
+            afternoon_shift = max(shifts_today, key=lambda s: s.hour_to)
+
+            # Shift end in local tz
+            shift_end_local = check_in_local.replace(
+                hour=int(afternoon_shift.hour_to),
+                minute=int(round((afternoon_shift.hour_to % 1) * 60)),
+                second=0,
+                microsecond=0
+            )
+
+            # Shift end UTC naive for comparison
+            shift_end_utc_naive = shift_end_local.astimezone(UTC).replace(tzinfo=None)
+
+            # --- Reminder: 10 minutes before shift end (same for all employees)
+            reminder_time_utc = shift_end_utc_naive - timedelta(minutes=10)
+
+            if reminder_time_utc <= now_utc_naive < shift_end_utc_naive and not attendance.reminder_sent:
+                self.env['mail.activity'].create({
+                    'res_model_id': res_model_id,
+                    'res_id': attendance.id,
+                    'activity_type_id': activity_type.id,
+                    'summary': "Checkout Reminder",
+                    'user_id': employee.user_id.id,
+                    'note': "Please check out",
+                    'date_deadline': fields.Date.today(),
+                })
+
+                attendance.message_post(
+                    body=f"Your checkout is scheduled at {shift_end_local.strftime('%H:%M')} (local time).",
+                    message_type='comment',
+                    subtype_xmlid='mail.mt_comment',
+                    partner_ids=[employee.user_id.partner_id.id],
+                )
+
+                # Send inbox notification
+                self.env['mail.notification'].sudo().create({
+                    'res_partner_id': employee.user_id.partner_id.id,
+                    'mail_message_id': self.env['mail.message'].create({
+                        'body': f"Dear {employee.name}, please checkout before shift end.",
+                        'subject': "Checkout Reminder",
+                        'message_type': 'notification',
+                        'model': 'hr.attendance',
+                        'res_id': attendance.id,
+                    }).id,
+                    'notification_type': 'inbox',
+                    'is_read': False,
+                })
+
+                attendance.reminder_sent = True
+
+            # --- Auto checkout at midnight today (local)
+            midnight_local = now_utc.replace(tzinfo=UTC).astimezone(user_tz).replace(
+                hour=23, minute=59, second=59, microsecond=0
+            )
+            midnight_utc_naive = midnight_local.astimezone(UTC).replace(tzinfo=None)
+
+            if now_utc_naive >= midnight_utc_naive and not attendance.auto_checkout:
+                attendance.write({
+                    'check_out': midnight_utc_naive,
+                    'auto_checkout': True,
+                })
 
     def _compute_is_manager(self):
         for rec in self:
