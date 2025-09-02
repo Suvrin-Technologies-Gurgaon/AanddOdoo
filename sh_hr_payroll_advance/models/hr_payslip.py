@@ -77,11 +77,11 @@ class HrPayslip(models.Model):
             is_late = getattr(att, 'is_late', False)
             is_early = getattr(att, 'is_early_checkout', False)
 
-            if is_late and is_early:
+            if is_late and is_early and att.leave_id and att.early_checkout_leave_id:
                 effective_hours = 0.0
-            elif is_late:
+            elif is_late and att.leave_id:
                 effective_hours = day_work_hours / 2
-            elif is_early:
+            elif is_early and att.early_checkout_leave_id:
                 effective_hours = day_work_hours / 2
             else:
                 effective_hours = day_work_hours
@@ -111,14 +111,23 @@ class HrPayslip(models.Model):
 
             current_day = start_date
             while current_day <= end_date:
-                day_start = fields.Datetime.to_datetime(datetime.combine(current_day, datetime.min.time()))
-                day_end = fields.Datetime.to_datetime(datetime.combine(current_day, datetime.max.time()))
-                hours = calendar.get_work_hours_count(day_start, day_end)
+                # Calculate only the overlapping segment for this day
+                seg_start = max(
+                    fields.Datetime.to_datetime(datetime.combine(current_day, datetime.min.time())),
+                    leave.date_from,
+                )
+                seg_end = min(
+                    fields.Datetime.to_datetime(datetime.combine(current_day, datetime.max.time())),
+                    leave.date_to,
+                )
 
-                if leave_type.name in ["Unpaid", "Unpaid Earned Leave"]:
-                    unpaid_hours += hours
-                else:
-                    paid_hours += hours
+                if seg_start < seg_end:
+                    hours = calendar.get_work_hours_count(seg_start, seg_end)
+
+                    if leave_type.name in ["Unpaid", "Unpaid Earned Leave"]:
+                        unpaid_hours += hours
+                    else:
+                        paid_hours += hours
 
                 current_day += timedelta(days=1)
 
@@ -177,4 +186,55 @@ class HrPayslip(models.Model):
                     -deduction_amount,
                     contract
                 )
+
+            # inputs
+            payslip.worked_days_line_ids = [(5, 0, 0)] + [
+                (0, 0, line) for line in payslip.get_worked_day_lines(contract, payslip.date_from, payslip.date_to)
+            ]
+        return res
+
+    def get_worked_day_lines(self, contracts, date_from, date_to):
+        """Compute worked days, paid leave, unpaid leave lines for hr.payslip.worked_days."""
+        res = []
+        for contract in contracts:
+            employee = contract.employee_id
+            calendar = contract.resource_calendar_id or employee.resource_calendar_id
+            hours_per_day = calendar.hours_per_day or 8.0
+
+            worked_hours, _ = self._compute_attendance_hours(employee, date_from, date_to)
+            paid_hours, unpaid_hours = self._get_leave_hours(employee, date_from, date_to)
+
+            # Worked Days
+            if worked_hours > 0:
+                res.append({
+                    'name': 'Worked Days',
+                    'sequence': 1,
+                    'code': 'WORK100',
+                    'number_of_days': worked_hours / hours_per_day,
+                    'number_of_hours': worked_hours,
+                    'contract_id': contract.id,
+                })
+
+            # Paid Leave
+            if paid_hours > 0:
+                res.append({
+                    'name': 'Paid Leave',
+                    'sequence': 2,
+                    'code': 'LEAVE_PAID',
+                    'number_of_days': paid_hours / hours_per_day,
+                    'number_of_hours': paid_hours,
+                    'contract_id': contract.id,
+                })
+
+            # Unpaid Leave
+            if unpaid_hours > 0:
+                res.append({
+                    'name': 'Unpaid Leave',
+                    'sequence': 3,
+                    'code': 'LEAVE_UNPAID',
+                    'number_of_days': unpaid_hours / hours_per_day,
+                    'number_of_hours': unpaid_hours,
+                    'contract_id': contract.id,
+                })
+
         return res
