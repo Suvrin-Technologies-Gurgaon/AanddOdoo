@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="cron_monthly_payslip_generation" model="ir.cron">
+        <field name="name">Generate Monthly Payslips</field>
+        <field name="model_id" ref="sh_hr_payroll.model_hr_payslip_run"/>
+        <field name="state">code</field>
+        <field name="code">model._generate_monthly_payslips()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="active">True</field>
+    </record>
+</odoo>
