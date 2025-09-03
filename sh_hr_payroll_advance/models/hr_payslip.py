@@ -187,10 +187,15 @@ class HrPayslip(models.Model):
                     contract
                 )
 
-            # inputs
-            payslip.worked_days_line_ids = [(5, 0, 0)] + [
-                (0, 0, line) for line in payslip.get_worked_day_lines(contract, payslip.date_from, payslip.date_to)
-            ]
+            # Compute worked days, paid leave, and unpaid leave
+            new_lines = []
+            existing_codes = payslip.worked_days_line_ids.mapped('code')
+            for line in payslip.get_worked_day_lines(contract, payslip.date_from, payslip.date_to):
+                if line['code'] not in existing_codes:
+                    new_lines.append((0, 0, line))
+
+            if new_lines:
+                payslip.write({'worked_days_line_ids': new_lines})
         return res
 
     def get_worked_day_lines(self, contracts, date_from, date_to):
