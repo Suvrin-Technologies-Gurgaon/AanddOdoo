@@ -1,0 +1,19 @@
+<odoo>
+    <data noupdate="0">
+
+        <!-- Rename top-level "Time Off" -> "Leave" -->
+        <record id="hr_holidays.menu_hr_holidays_root" model="ir.ui.menu" forcecreate="False">
+            <field name="name">Leave</field>
+        </record>
+
+        <!-- Rename "My Time Off" -> "My Leave" -->
+        <record id="hr_holidays.menu_hr_holidays_my_leaves" model="ir.ui.menu" forcecreate="False">
+            <field name="name">My Leave</field>
+        </record>
+
+        <!-- Rename "My Time Off" -> "My Leave" -->
+        <record id="hr_holidays.hr_leave_menu_my" model="ir.ui.menu" forcecreate="False">
+            <field name="name">My Leave</field>
+        </record>
+    </data>
+</odoo>
