@@ -11,9 +11,10 @@ class EmpOutOfficeSchedule(models.Model):
 
     name = fields.Char("Name")
     description = fields.Text("Description")
-    employee_id = fields.Many2one('hr.employee', string="Employee")
-    start_date = fields.Date(string="Start Date", required=True)
-    end_date = fields.Date(string="End Date", required=True)
+    employee_id = fields.Many2one('hr.employee', string="Employee", required=True,
+                                  default=lambda self: self.env.user.employee_id)
+    start_date = fields.Datetime(string="Start Date", required=True)
+    end_date = fields.Datetime(string="End Date", required=True)
     state = fields.Selection([('new', 'New'), ('confirmed', 'Confirmed')],
                              string="Status", default='new')
 

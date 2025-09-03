@@ -9,6 +9,7 @@
     "depends": ["hr_attendance", "hr_holidays", "hr"],
     "data": [
         'security/ir.model.access.csv',
+        'security/security.xml',
         "data/cron.xml",
         "views/hr_leave_views.xml",
         "views/res_config_settings_view.xml",
