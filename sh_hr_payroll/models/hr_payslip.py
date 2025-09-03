@@ -47,7 +47,7 @@ class HrPayslip(models.Model):
         ],
         string="Status",
         index=True,
-        readonly=False,
+        readonly=True,
         copy=False,
         default="draft",
         help="""* When the payslip is created the status is \'Draft\'
