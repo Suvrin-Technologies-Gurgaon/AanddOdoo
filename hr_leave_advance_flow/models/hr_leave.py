@@ -62,6 +62,47 @@ class HrEmployee(models.Model):
 class HrLeave(models.Model):
     _inherit = 'hr.leave'
 
+    calendar_event_id = fields.Many2one('calendar.event', string="Calendar Event")
+
+    @api.model
+    def create(self, vals):
+        """Override create method for update calendar event"""
+        leave = super(HrLeave, self).create(vals)
+        leave.create_or_update_calendar_event()
+        return leave
+
+    def write(self, vals):
+        """Override wriite method for update calendar event"""
+        res = super(HrLeave, self).write(vals)
+        for leave in self:
+            leave.create_or_update_calendar_event()
+        return res
+
+    def unlink(self):
+        """Override unlink method for update calendar event"""
+        for leave in self:
+            if leave.calendar_event_id:
+                leave.calendar_event_id.unlink()
+        return super(HrLeave, self).unlink()
+
+    def create_or_update_calendar_event(self):
+        """ Create or update calendar.event when leave is created/updated """
+        for leave in self:
+            title = f"Leave: {leave.employee_id.name}"
+            event_vals = {
+                'name': title,
+                'start': leave.request_date_from,
+                'stop': leave.request_date_to,
+                'allday': True,
+                'user_id': leave.employee_id.user_id.id or False,
+                'partner_ids': [
+                    (6, 0, [leave.employee_id.user_id.partner_id.id])] if leave.employee_id.user_id else False,
+            }
+            if leave.calendar_event_id:
+                leave.calendar_event_id.write(event_vals)
+            else:
+                leave.calendar_event_id = self.env['calendar.event'].create(event_vals).id
+
     @api.model
     def default_get(self, fields_list):
         """Override default get to set timeoff type"""

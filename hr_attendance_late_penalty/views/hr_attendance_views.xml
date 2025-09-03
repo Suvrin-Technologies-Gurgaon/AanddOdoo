@@ -37,5 +37,28 @@
         </field>
     </record>
 
+    <record id="view_hr_attendance_tree_inherit_days" model="ir.ui.view">
+        <field name="name">hr.attendance.tree.inherit.days</field>
+        <field name="model">hr.attendance</field>
+        <field name="inherit_id" ref="hr_attendance.view_attendance_tree"/>
+        <field name="arch" type="xml">
+            <!-- Hide hour fields -->
+            <xpath expr="//field[@name='worked_hours']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+            <xpath expr="//field[@name='overtime_hours']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
+            <xpath expr="//field[@name='validated_overtime_hours']" position="attributes">
+                <attribute name="optional">hide</attribute>
+            </xpath>
 
+            <!-- Add new day fields -->
+            <xpath expr="//list" position="inside">
+                <field name="worked_day"/>
+                <field name="worked_extra_day"/>
+                <field name="extra_day"/>
+            </xpath>
+        </field>
+    </record>
 </odoo>

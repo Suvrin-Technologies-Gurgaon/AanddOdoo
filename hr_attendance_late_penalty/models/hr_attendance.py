@@ -25,6 +25,21 @@ class HrAttendance(models.Model):
     approved_user_id = fields.Many2one('res.users', "Approved User")
     auto_checkout = fields.Boolean(default=False, help="Marked True if auto checkout applied")
     reminder_sent = fields.Boolean(default=False)
+    worked_day = fields.Float(string="Worked Days", compute="_compute_days", store=True)
+    worked_extra_day = fields.Float(string="Worked Extra Days", compute="_compute_days", store=True)
+    extra_day = fields.Float(string="Extra Days", compute="_compute_days", store=True)
+
+    @api.depends('worked_hours', 'overtime_hours', 'validated_overtime_hours', 'employee_id')
+    def _compute_days(self):
+        """Compute days for worked, worked extra and extra"""
+        for rec in self:
+            hours_per_day = 8.0
+            if rec.employee_id and rec.employee_id.resource_calendar_id:
+                hours_per_day = rec.employee_id.resource_calendar_id.hours_per_day or hours_per_day
+
+            rec.worked_day = rec.worked_hours / hours_per_day if rec.worked_hours else 0.0
+            rec.worked_extra_day = rec.overtime_hours / hours_per_day if rec.overtime_hours else 0.0
+            rec.extra_day = rec.validated_overtime_hours / hours_per_day if rec.validated_overtime_hours else 0.0
 
     @api.model
     def _cron_check_attendance(self):
