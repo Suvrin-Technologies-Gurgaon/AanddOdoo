@@ -483,7 +483,7 @@ class HrAttendance(models.Model):
                             emp_tz) <= last_date_of_current_month))
 
             # late_attendances = employee.attendance_ids.filtered(lambda x: x.late_reason != False and x.check_in  > last_leave_date)
-            if late_attendances and len(late_attendances) > allowed_count:
+            if late_attendances and len(late_attendances) >= allowed_count:
                 return True
             return False
         return None

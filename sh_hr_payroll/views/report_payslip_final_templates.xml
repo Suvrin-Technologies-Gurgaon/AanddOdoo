@@ -23,13 +23,17 @@
                                         Number
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.emp_seq" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_user')">
+                                        <span t-field="o.employee_id.emp_seq" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
                                     <strong style="display: inline-block; width: 200px; text-align: left;">Tax Regime
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.tax_regime" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_user')">
+                                        <span t-field="o.employee_id.tax_regime" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                             </div>
 
@@ -49,7 +53,9 @@
                                         Number
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.pan_card_no" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_manager')">
+                                        <span t-field="o.employee_id.pan_card_no" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                             </div>
 
@@ -65,9 +71,12 @@
                                         Account Number
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.uan_no" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_user')">
+                                        <span t-field="o.employee_id.uan_no" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                             </div>
+
                             <div style="width: 100%; display: table; margin-bottom: 6px;">
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
                                     <strong style="display: inline-block; width: 130px; text-align: left;">Location
@@ -76,42 +85,50 @@
                                     <span t-field="o.employee_id.work_location_id.name" style="padding-left: 5px;"/>
                                 </div>
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
-                                    <strong style="display: inline-block; width: 200px; text-align: left;">
-                                        PF account number
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">PF account
+                                        number
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.pf_account_number" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_user')">
+                                        <span t-field="o.employee_id.pf_account_number" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                             </div>
+
                             <div style="width: 100%; display: table; margin-bottom: 6px;">
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
-                                    <strong style="display: inline-block; width: 130px; text-align: left;">Bank Details
+                                    <strong style="display: inline-block; width: 130px; text-align: left;">Bank
+                                        Details
                                     </strong>
                                     <span>:</span>
                                     <span t-field="o.employee_id.bank_account_id.acc_number"
                                           style="padding-left: 5px;"/>
                                 </div>
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
-                                    <strong style="display: inline-block; width: 200px; text-align: left;">
-                                        ESI Number
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">ESI Number
                                     </strong>
                                     <span>:</span>
                                 </div>
                             </div>
+
                             <div style="width: 100%; display: table; margin-bottom: 6px;">
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
                                     <strong style="display: inline-block; width: 130px; text-align: left;">Date of
                                         joining
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.date_of_joining" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_user')">
+                                        <span t-field="o.employee_id.date_of_joining" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                                 <div style="display: table-cell; width: 50%; white-space: nowrap;">
-                                    <strong style="display: inline-block; width: 200px; text-align: left;">
-                                        PR Account Number
+                                    <strong style="display: inline-block; width: 200px; text-align: left;">PR Account
+                                        Number
                                     </strong>
                                     <span>:</span>
-                                    <span t-field="o.employee_id.pr_account_number" style="padding-left: 5px;"/>
+                                    <t t-if="user.has_group('hr.group_hr_user')">
+                                        <span t-field="o.employee_id.pr_account_number" style="padding-left: 5px;"/>
+                                    </t>
                                 </div>
                             </div>
                         </div>
