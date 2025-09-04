@@ -35,6 +35,9 @@
                             class="btn-danger"
                             invisible="state != 'submitted'"/>
 
+                    <button name="action_cancel_client_visit" type="object" string="Cancel"
+                            class="btn-secondary" invisible="state != 'draft'"/>
+
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,submitted,approved,rejected"/>
                 </header>

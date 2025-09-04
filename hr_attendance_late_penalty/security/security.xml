@@ -10,7 +10,6 @@
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
-            <field name="perm_unlink" eval="True"/>
         </record>
 
         <record id="client_visit_rule_visibility" model="ir.rule">
@@ -21,7 +20,6 @@
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="False"/>
             <field name="perm_create" eval="False"/>
-            <field name="perm_unlink" eval="False"/>
         </record>
     </data>
 </odoo>

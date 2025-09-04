@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_emp_out_office_schedule,name_emp_out_office_schedule,model_emp_out_office_schedule,,1,1,1,1
+access_emp_out_office_schedule,name_emp_out_office_schedule,model_emp_out_office_schedule,,1,1,1,0

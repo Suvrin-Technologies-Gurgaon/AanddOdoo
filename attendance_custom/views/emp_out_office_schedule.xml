@@ -12,6 +12,9 @@
                                 string="Confirm"
                                 class="btn-primary"
                                 invisible="state != 'new'"/>
+                        <button name="action_cancel_out_of_office_schedule" type="object"
+                                string="Cancel" class="btn-danger"
+                                invisible="state != 'new'"/>
                     </header>
                 <sheet>
                      <div class="row justify-content-between position-relative w-100 m-0 mb-2">
@@ -54,6 +57,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="employee_id"/>
+                <field name="state"/>
                 <field name="start_date"/>
                 <field name="end_date"/>
             </list>

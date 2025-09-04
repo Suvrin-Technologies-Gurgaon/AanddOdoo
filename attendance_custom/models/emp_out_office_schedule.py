@@ -15,12 +15,17 @@ class EmpOutOfficeSchedule(models.Model):
                                   default=lambda self: self.env.user.employee_id)
     start_date = fields.Datetime(string="Start Date", required=True)
     end_date = fields.Datetime(string="End Date", required=True)
-    state = fields.Selection([('new', 'New'), ('confirmed', 'Confirmed')],
+    state = fields.Selection([('new', 'New'), ('confirmed', 'Confirmed'), ('cancel', 'Cancel')],
                              string="Status", default='new')
 
     def action_confirm(self):
         for rec in self:
             rec.state = 'confirmed'
+
+    def action_cancel_out_of_office_schedule(self):
+        """Method to cancel out of office schedule"""
+        for rec in self:
+            rec.state = 'cancel'
 
     @api.model
     def auto_create_emp_attendance(self):

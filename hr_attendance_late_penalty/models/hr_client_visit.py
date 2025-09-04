@@ -19,11 +19,16 @@ class HrClientVisit(models.Model):
         ('draft', 'Draft'),
         ('submitted', 'Submitted'),
         ('approved', 'Approved'),
-        ('rejected', 'Rejected')
+        ('rejected', 'Rejected'),
+        ('cancel', 'Cancel')
     ], default='draft', string="Status", tracking=True)
 
     def action_submit(self):
         self.write({'state': 'submitted'})
+
+    def action_cancel_client_visit(self):
+        """Method to cancel client visit"""
+        self.write({'state': 'cancel'})
 
     def action_approve(self):
         self.write({'state': 'approved'})
