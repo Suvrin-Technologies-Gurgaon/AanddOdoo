@@ -29,7 +29,6 @@ class HrPayslipRun(models.Model):
             "date_start": first_day,
             "date_end": last_day,
         })
-        new_inputs = []
         # Generate payslips for all employees
         for emp in Employee:
             contract = emp.contract_id
@@ -47,9 +46,10 @@ class HrPayslipRun(models.Model):
                 "payslip_run_id": payslip_run.id,
             })
 
+            new_inputs = []
             existing_input_codes = payslip.input_line_ids.mapped('code')
 
-            for line in payslip.get_inputs(contract, payslip.date_from, payslip.date_to):
+            for line in payslip.get_inputs(payslip.contract_id, payslip.date_from, payslip.date_to):
                 if line['code'] not in existing_input_codes:
                     new_inputs.append((0, 0, line))
 
