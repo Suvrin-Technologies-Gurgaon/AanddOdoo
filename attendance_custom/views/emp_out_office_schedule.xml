@@ -4,7 +4,7 @@
         <field name="name">emp.out.office.schedule.form</field>
         <field name="model">emp.out.office.schedule</field>
         <field name="arch" type="xml">
-            <form string="Out of Office Schedule">
+            <form string="Tour Visit">
                 <header>
                         <field name="state" widget="statusbar" options="{'clickable': False}"/>
                         <button name="action_confirm"
@@ -66,11 +66,11 @@
 
     <!-- Action -->
     <record id="action_out_office_schedule" model="ir.actions.act_window">
-        <field name="name">Out of Office Schedule</field>
+        <field name="name">Tour Visit</field>
         <field name="res_model">emp.out.office.schedule</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <menuitem id="menu_out_office_schedule" name="Out of Office Schedule" parent="hr_attendance.menu_hr_attendance_root"
+    <menuitem id="menu_out_office_schedule" name="Tour Visit" parent="hr_attendance.menu_hr_attendance_root"
               action="action_out_office_schedule" sequence="12"/>
 </odoo>

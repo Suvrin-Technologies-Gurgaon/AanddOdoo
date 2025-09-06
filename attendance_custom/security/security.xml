@@ -13,7 +13,7 @@
         </record>
 
         <record id="emp_out_office_schedule_rule_visibility" model="ir.rule">
-            <field name="name">Client Visit: Visibility</field>
+            <field name="name">Tour Visit: Visibility</field>
             <field name="model_id" ref="attendance_custom.model_emp_out_office_schedule"/>
             <field name="domain_force">[('employee_id','child_of',[user.employee_id.id])]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>

@@ -56,8 +56,8 @@
             <!-- Add new day fields -->
             <xpath expr="//list" position="inside">
                 <field name="worked_day"/>
-                <field name="worked_extra_day"/>
-                <field name="extra_day"/>
+                <field name="worked_extra_day" optional="hide"/>
+                <field name="extra_day" optional="hide"/>
             </xpath>
         </field>
     </record>
