@@ -125,6 +125,7 @@ class HrLeave(models.Model):
                 leaves_taken = self.env['hr.leave'].search([
                     ('employee_id', '=', employee.id),
                     ('holiday_status_id', '=', leave_type.id),
+                    ('state', 'not in', ['refuse', 'cancel'])
                 ])
                 total_taken = sum(l.number_of_days for l in leaves_taken)
                 available_days = total_allocated - total_taken

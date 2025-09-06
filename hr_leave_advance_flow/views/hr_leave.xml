@@ -7,11 +7,11 @@
             <field name="holiday_status_id" position="attributes">
                 <attribute name="readonly">1</attribute>
             </field>
-            <xpath expr="//header/button[@name='action_approve']" position="attributes">
-                <attribute name="groups">hr.group_hr_manager</attribute>
+            <xpath expr="//header/button[@name='action_approve' and @type='object']" position="attributes">
+                <attribute name="groups">hr.group_hr_user</attribute>
             </xpath>
-            <xpath expr="//header/button[@name='action_refuse']" position="attributes">
-                <attribute name="groups">hr.group_hr_manager</attribute>
+            <xpath expr="//header/button[@name='action_refuse' and @type='object']" position="attributes">
+                <attribute name="groups">hr.group_hr_user</attribute>
             </xpath>
         </field>
     </record>
