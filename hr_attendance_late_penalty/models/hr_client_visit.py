@@ -22,16 +22,32 @@ class HrClientVisit(models.Model):
         ('rejected', 'Rejected'),
         ('cancel', 'Cancel')
     ], default='draft', string="Status", tracking=True)
+    calendar_event_id = fields.Many2one('calendar.event', string="Calendar Event")
 
     def action_submit(self):
         self.write({'state': 'submitted'})
 
     def action_cancel_client_visit(self):
         """Method to cancel client visit"""
-        self.write({'state': 'cancel'})
+        for rec in self:
+            rec.state = "cancel"
+            if rec.calendar_event_id:
+                rec.calendar_event_id.unlink()
 
     def action_approve(self):
-        self.write({'state': 'approved'})
+        """Method to approve local visit"""
+        for rec in self:
+            rec.state = "approved"
+            if not rec.calendar_event_id:
+                event = self.env["calendar.event"].create({
+                    "name": rec.purpose,
+                    "start": rec.start_time,
+                    "stop": rec.end_time,
+                    "user_id": rec.employee_id.user_id.id or self.env.uid,
+                    "partner_ids": [
+                        (6, 0, [rec.employee_id.user_id.partner_id.id])] if rec.employee_id.user_id else False,
+                })
+                rec.calendar_event_id = event.id
 
     def action_reject(self):
         self.write({'state': 'rejected'})

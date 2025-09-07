@@ -17,15 +17,28 @@ class EmpOutOfficeSchedule(models.Model):
     end_date = fields.Datetime(string="End Date", required=True)
     state = fields.Selection([('new', 'New'), ('confirmed', 'Confirmed'), ('cancel', 'Cancel')],
                              string="Status", default='new')
+    calendar_event_id = fields.Many2one('calendar.event', string="Calendar Event")
 
     def action_confirm(self):
         for rec in self:
-            rec.state = 'confirmed'
+            rec.state = "confirmed"
+            if not rec.calendar_event_id:
+                event = self.env["calendar.event"].create({
+                    "name": rec.name,
+                    "start": rec.start_date,
+                    "stop": rec.end_date,
+                    "user_id": rec.employee_id.user_id.id or self.env.uid,
+                    "partner_ids": [
+                        (6, 0, [rec.employee_id.user_id.partner_id.id])] if rec.employee_id.user_id else False,
+                })
+                rec.calendar_event_id = event.id
 
     def action_cancel_out_of_office_schedule(self):
         """Method to cancel out of office schedule"""
         for rec in self:
-            rec.state = 'cancel'
+            rec.state = "cancel"
+            if rec.calendar_event_id:
+                rec.calendar_event_id.unlink()
 
     @api.model
     def auto_create_emp_attendance(self):
