@@ -23,20 +23,20 @@
 
                             </div>
                         </div>
-                        <div id="hr_attendance_penalty_leave_type" class="col-12 col-lg-12 o_setting_box">
-                            <div class="o_setting_left_pane">
+<!--                        <div id="hr_attendance_penalty_leave_type" class="col-12 col-lg-12 o_setting_box">-->
+<!--                            <div class="o_setting_left_pane">-->
 
-                            </div>
-                            <div class="o_setting_right_pane">
-                               <label for="penalty_leave_type_id"/>
-                                <div class="text-muted">
-                                    The leave type to use for the penalty (e.g., Unpaid, Casual, etc.).
-                                </div>
-                                                              <field name="penalty_leave_type_id" options="{'no_create_edit': False}"/>
+<!--                            </div>-->
+<!--                            <div class="o_setting_right_pane">-->
+<!--                               <label for="penalty_leave_type_id"/>-->
+<!--                                <div class="text-muted">-->
+<!--                                    The leave type to use for the penalty (e.g., Unpaid, Casual, etc.).-->
+<!--                                </div>-->
+<!--                                                              <field name="penalty_leave_type_id" options="{'no_create_edit': False}"/>-->
 
 
-                            </div>
-                        </div>
+<!--                            </div>-->
+<!--                        </div>-->
                     </block>
                 </block>
             </field>

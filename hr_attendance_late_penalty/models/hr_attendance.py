@@ -488,19 +488,53 @@ class HrAttendance(models.Model):
             return False
         return None
 
+    def get_timeoff_type_sequentially(self):
+        """Method to get timeoff type sequentially"""
+        employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
+        unpaid_leave_type = self.env['hr.leave.type'].search([('name', '=', 'Unpaid')], limit=1)
+        if employee:
+            # Get leave types ordered by sequence
+            leave_types = self.env['hr.leave.type'].search([], order='sequence asc')
+            leave_found = False
+
+            for leave_type in leave_types:
+                # Check if employee has remaining allocation
+                remaining_alloc = self.env['hr.leave.allocation'].search([
+                    ('employee_id', '=', employee.id),
+                    ('holiday_status_id', '=', leave_type.id),
+                    ('state', '=', 'validate')
+                ])
+                total_allocated = sum(a.number_of_days for a in remaining_alloc)
+                leaves_taken = self.env['hr.leave'].search([
+                    ('employee_id', '=', employee.id),
+                    ('holiday_status_id', '=', leave_type.id),
+                    ('state', 'not in', ['refuse', 'cancel'])
+                ])
+                total_taken = sum(l.number_of_days for l in leaves_taken)
+                available_days = total_allocated - total_taken
+                if available_days > 0:
+                    return leave_type.id
+
+            if not leave_found and unpaid_leave_type:
+                return unpaid_leave_type.id
+            return None
+        return None
+
     def _create_half_day_penalty_leave(self):
         """Method to create half day penalty leave"""
         for attendance in self:
             if attendance._deserve_penalty():
                 allowed_count, leave_type_id = attendance._get_penalty_params()
-                if not leave_type_id:
-                    raise (
-                        _("Penalty leave type is not configured in attendance settings,Please contact administrator."))
+                # if not leave_type_id:
+                #     raise (
+                #         _("Penalty leave type is not configured in attendance settings,Please contact administrator."))
+                leave_type_id = attendance.get_timeoff_type_sequentially()
+
                 check_in_date = attendance.check_in.date()
                 # date_from, date_to = attendance.employee_id._check_leave_date(check_in_date, check_in_date)
                 vals = {
                     "employee_id": attendance.employee_id and attendance.employee_id.id or False,
-                    "holiday_status_id": leave_type_id and int(leave_type_id) or False,
+                    "holiday_status_id": leave_type_id or False,
                     "request_date_from": check_in_date,
                     "request_date_to": check_in_date,
                     "request_unit_half": True,
