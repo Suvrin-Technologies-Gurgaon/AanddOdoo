@@ -19,6 +19,7 @@ class HrAttendance(models.Model):
     is_early_checkout = fields.Boolean("Is Early Checkout?", default=False)
     leave_id = fields.Many2one('hr.leave', string='Late Checkin Time Off')
     early_checkout_leave_id = fields.Many2one('hr.leave', string='Early Checkout Time Off')
+    # missed_checkout_leave_id = fields.Many2one('hr.leave', string='Missed Checkout Time Off')
     is_send_approval = fields.Boolean("Is send Approval?", default=False)
     is_approved = fields.Boolean("Is Approved?", default=False)
     is_manager = fields.Boolean("Is Manager?", compute="_compute_is_manager", default=False)
@@ -40,6 +41,25 @@ class HrAttendance(models.Model):
             rec.worked_day = rec.worked_hours / hours_per_day if rec.worked_hours else 0.0
             rec.worked_extra_day = rec.overtime_hours / hours_per_day if rec.overtime_hours else 0.0
             rec.extra_day = rec.validated_overtime_hours / hours_per_day if rec.validated_overtime_hours else 0.0
+
+    # def create_full_day_penalty_leave(self, attendance):
+    #     """Method to create full day penalty leave"""
+    #     leave_type_id = attendance.get_timeoff_type_sequentially()
+    #     check_in_date = attendance.check_in.date()
+    #
+    #     vals = {
+    #         "name": "Full-day leave penalty applied due to missing checkout.",
+    #         "employee_id": attendance.employee_id and attendance.employee_id.id or False,
+    #         "holiday_status_id": leave_type_id or False,
+    #         "request_date_from": check_in_date,
+    #         "request_date_to": check_in_date,
+    #         "is_penalty_leave": True,
+    #         "state": "confirm"
+    #     }
+    #     missed_checkout_leave_id = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True).create(vals)
+    #     attendance.sudo().write({
+    #         'early_checkout_leave_id': missed_checkout_leave_id.id
+    #     })
 
     @api.model
     def _cron_check_attendance(self):
@@ -151,6 +171,8 @@ class HrAttendance(models.Model):
                     'check_out': midnight_utc_naive,
                     'auto_checkout': True,
                 })
+                # Create Full day Penalty Leave
+                # self.create_full_day_penalty_leave(attendance)
 
     def _compute_is_manager(self):
         for rec in self:
