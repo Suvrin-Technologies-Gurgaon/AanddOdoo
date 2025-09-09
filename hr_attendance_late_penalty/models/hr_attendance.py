@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, time
 import pytz
 from markupsafe import Markup
 import calendar
+import math
 from pytz import timezone, UTC
 
 
@@ -19,7 +20,7 @@ class HrAttendance(models.Model):
     is_early_checkout = fields.Boolean("Is Early Checkout?", default=False)
     leave_id = fields.Many2one('hr.leave', string='Late Checkin Time Off')
     early_checkout_leave_id = fields.Many2one('hr.leave', string='Early Checkout Time Off')
-    # missed_checkout_leave_id = fields.Many2one('hr.leave', string='Missed Checkout Time Off')
+    missed_checkout_leave_id = fields.Many2one('hr.leave', string='Missed Checkout Time Off')
     is_send_approval = fields.Boolean("Is send Approval?", default=False)
     is_approved = fields.Boolean("Is Approved?", default=False)
     is_manager = fields.Boolean("Is Manager?", compute="_compute_is_manager", default=False)
@@ -29,37 +30,81 @@ class HrAttendance(models.Model):
     worked_day = fields.Float(string="Worked Days", compute="_compute_days", store=True)
     worked_extra_day = fields.Float(string="Worked Extra Days", compute="_compute_days", store=True)
     extra_day = fields.Float(string="Extra Days", compute="_compute_days", store=True)
+    half_day_penalty = fields.Boolean(string="Half Day Penalty Applied", compute="_compute_half_day_penalty", store=True)
+    full_day_penalty = fields.Boolean(string="Full Day Penalty Applied", compute="_compute_full_day_penalty", store=True)
+
+    @api.depends('missed_checkout_leave_id')
+    def _compute_full_day_penalty(self):
+        """Compute stored full-day penalty for filtering, reports, old records."""
+        for rec in self:
+            if rec.leave_id:
+                rec.half_day_penalty = False
+            rec.full_day_penalty = bool(rec.missed_checkout_leave_id)
+
+    @api.depends('leave_id', 'early_checkout_leave_id')
+    def _compute_half_day_penalty(self):
+        """Compute half-day or full-day penalty based on leave and early checkout."""
+        for rec in self:
+            if rec.leave_id and rec.early_checkout_leave_id:
+                rec.full_day_penalty = True
+                rec.half_day_penalty = False
+            elif rec.leave_id or rec.early_checkout_leave_id:
+                rec.full_day_penalty = False
+                rec.half_day_penalty = True
+            else:
+                rec.full_day_penalty = False
+                rec.half_day_penalty = False
 
     @api.depends('worked_hours', 'overtime_hours', 'validated_overtime_hours', 'employee_id')
     def _compute_days(self):
-        """Compute days for worked, worked extra and extra"""
+        """Compute days for worked, worked extra and extra with client-friendly rounding"""
         for rec in self:
             hours_per_day = 8.0
             if rec.employee_id and rec.employee_id.resource_calendar_id:
                 hours_per_day = rec.employee_id.resource_calendar_id.hours_per_day or hours_per_day
 
-            rec.worked_day = rec.worked_hours / hours_per_day if rec.worked_hours else 0.0
-            rec.worked_extra_day = rec.overtime_hours / hours_per_day if rec.overtime_hours else 0.0
-            rec.extra_day = rec.validated_overtime_hours / hours_per_day if rec.validated_overtime_hours else 0.0
+            def round_days(value):
+                if not value:
+                    return 0.0
+                full = math.floor(value)
+                fraction = value - full
+                if fraction < 0.5:
+                    return full
+                else:
+                    return full + 0.5
 
-    # def create_full_day_penalty_leave(self, attendance):
-    #     """Method to create full day penalty leave"""
-    #     leave_type_id = attendance.get_timeoff_type_sequentially()
-    #     check_in_date = attendance.check_in.date()
-    #
-    #     vals = {
-    #         "name": "Full-day leave penalty applied due to missing checkout.",
-    #         "employee_id": attendance.employee_id and attendance.employee_id.id or False,
-    #         "holiday_status_id": leave_type_id or False,
-    #         "request_date_from": check_in_date,
-    #         "request_date_to": check_in_date,
-    #         "is_penalty_leave": True,
-    #         "state": "confirm"
-    #     }
-    #     missed_checkout_leave_id = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True).create(vals)
-    #     attendance.sudo().write({
-    #         'early_checkout_leave_id': missed_checkout_leave_id.id
-    #     })
+            worked_days_raw = rec.worked_hours / hours_per_day if rec.worked_hours else 0.0
+            worked_extra_raw = rec.overtime_hours / hours_per_day if rec.overtime_hours else 0.0
+            extra_raw = rec.validated_overtime_hours / hours_per_day if rec.validated_overtime_hours else 0.0
+
+            rec.worked_day = round_days(worked_days_raw)
+            rec.worked_extra_day = round_days(worked_extra_raw)
+            rec.extra_day = round_days(extra_raw)
+
+    def create_full_day_penalty_leave(self, attendance):
+        """Method to create full day penalty leave"""
+        leave_type_id = attendance.get_timeoff_type_sequentially()
+        check_in_date = attendance.check_in.date()
+
+        vals = {
+            "name": "Full-day leave penalty applied due to missing checkout.",
+            "employee_id": attendance.employee_id and attendance.employee_id.id or False,
+            "holiday_status_id": leave_type_id or False,
+            "request_date_from": check_in_date,
+            "request_date_to": check_in_date,
+            "is_penalty_leave": True,
+            "state": "confirm"
+        }
+
+        if attendance.leave_id:
+            vals["name"] = "Missed checkout leave penalty"
+            vals["request_date_from_period"] = "pm"
+            vals["request_unit_half"] = True
+
+        missed_checkout_leave_id = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True).create(vals)
+        attendance.sudo().write({
+            'missed_checkout_leave_id': missed_checkout_leave_id.id
+        })
 
     @api.model
     def _cron_check_attendance(self):
@@ -82,22 +127,22 @@ class HrAttendance(models.Model):
 
             # Convert check_in to local timezone
             check_in_local = attendance.check_in.replace(tzinfo=UTC).astimezone(user_tz)
-            today_local = now_utc.replace(tzinfo=UTC).astimezone(user_tz).date()
+            # today_local = now_utc.replace(tzinfo=UTC).astimezone(user_tz).date()
 
             # --- Case A: Old attendance (previous days, no checkout)
-            if check_in_local.date() < today_local:
-                old_midnight_local = datetime.combine(
-                    check_in_local.date(),
-                    datetime.max.time()
-                ).replace(hour=23, minute=59, second=59, microsecond=0)
-
-                old_midnight_utc = user_tz.localize(old_midnight_local).astimezone(UTC).replace(tzinfo=None)
-
-                attendance.write({
-                    'check_out': old_midnight_utc,
-                    'auto_checkout': True,
-                })
-                continue
+            # if check_in_local.date() < today_local:
+            #     old_midnight_local = datetime.combine(
+            #         check_in_local.date(),
+            #         datetime.max.time()
+            #     ).replace(hour=23, minute=59, second=59, microsecond=0)
+            #
+            #     old_midnight_utc = user_tz.localize(old_midnight_local).astimezone(UTC).replace(tzinfo=None)
+            #
+            #     attendance.write({
+            #         'check_out': old_midnight_utc,
+            #         'auto_checkout': True,
+            #     })
+            #     continue
 
                 # --- Case B: Today's attendance
             calendar = employee.resource_calendar_id
@@ -123,10 +168,10 @@ class HrAttendance(models.Model):
             # Shift end UTC naive for comparison
             shift_end_utc_naive = shift_end_local.astimezone(UTC).replace(tzinfo=None)
 
-            # --- Reminder: 10 minutes before shift end (same for all employees)
-            reminder_time_utc = shift_end_utc_naive - timedelta(minutes=10)
+            # --- Reminder: 5 minutes after shift end
+            reminder_time_utc = shift_end_utc_naive + timedelta(minutes=5)
 
-            if reminder_time_utc <= now_utc_naive < shift_end_utc_naive and not attendance.reminder_sent:
+            if shift_end_utc_naive < now_utc_naive >= reminder_time_utc and not attendance.reminder_sent:
                 self.env['mail.activity'].create({
                     'res_model_id': res_model_id,
                     'res_id': attendance.id,
@@ -148,7 +193,7 @@ class HrAttendance(models.Model):
                 self.env['mail.notification'].sudo().create({
                     'res_partner_id': employee.user_id.partner_id.id,
                     'mail_message_id': self.env['mail.message'].create({
-                        'body': f"Dear {employee.name}, please checkout before shift end.",
+                        'body': f"Dear {employee.name}, please don't forget to checkout.",
                         'subject': "Checkout Reminder",
                         'message_type': 'notification',
                         'model': 'hr.attendance',
@@ -161,9 +206,10 @@ class HrAttendance(models.Model):
                 attendance.reminder_sent = True
 
             # --- Auto checkout at midnight today (local)
-            midnight_local = now_utc.replace(tzinfo=UTC).astimezone(user_tz).replace(
-                hour=23, minute=59, second=59, microsecond=0
-            )
+            yesterday_local = (now_utc.replace(tzinfo=UTC).astimezone(user_tz) - timedelta(days=1))
+            midnight_local = yesterday_local.replace(hour=23, minute=59, second=59, microsecond=0)
+
+            # Convert to UTC naive for DB storage
             midnight_utc_naive = midnight_local.astimezone(UTC).replace(tzinfo=None)
 
             if now_utc_naive >= midnight_utc_naive and not attendance.auto_checkout:
@@ -172,7 +218,7 @@ class HrAttendance(models.Model):
                     'auto_checkout': True,
                 })
                 # Create Full day Penalty Leave
-                # self.create_full_day_penalty_leave(attendance)
+                self.create_full_day_penalty_leave(attendance)
 
     def _compute_is_manager(self):
         for rec in self:
@@ -505,16 +551,16 @@ class HrAttendance(models.Model):
                             emp_tz) <= last_date_of_current_month))
 
             # late_attendances = employee.attendance_ids.filtered(lambda x: x.late_reason != False and x.check_in  > last_leave_date)
-            if late_attendances and len(late_attendances) >= allowed_count:
+            if late_attendances and len(late_attendances) > allowed_count:
                 return True
             return False
         return None
 
     def get_timeoff_type_sequentially(self):
         """Method to get timeoff type sequentially"""
-        employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
-        unpaid_leave_type = self.env['hr.leave.type'].search([('name', '=', 'Unpaid')], limit=1)
+        employee = self.employee_id
         if employee:
+            unpaid_leave_type = self.env['hr.leave.type'].search([('name', '=', 'Unpaid')], limit=1)
             # Get leave types ordered by sequence
             leave_types = self.env['hr.leave.type'].search([], order='sequence asc')
             leave_found = False

@@ -21,6 +21,7 @@
                 <field name="is_approved" invisible="1"/>
                 <field name="leave_id" invisible="1"/>
                 <field name="early_checkout_leave_id" invisible="1"/>
+                <field name="missed_checkout_leave_id" invisible="1"/>
             </xpath>
             <xpath expr="//sheet/group[1]" position="before">
                 <widget name="web_ribbon" title="Late" bg_color="text-bg-danger"
@@ -55,6 +56,8 @@
 
             <!-- Add new day fields -->
             <xpath expr="//list" position="inside">
+                <field name="half_day_penalty" widget="boolean_toggle"/>
+                <field name="full_day_penalty" widget="boolean_toggle"/>
                 <field name="worked_day"/>
                 <field name="worked_extra_day" optional="hide"/>
                 <field name="extra_day" optional="hide"/>

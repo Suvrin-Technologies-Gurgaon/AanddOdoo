@@ -68,33 +68,34 @@ class HrLeave(models.Model):
     def default_get(self, fields_list):
         """Override default get to set timeoff type"""
         res = super(HrLeave, self).default_get(fields_list)
-        employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
-        unpaid_leave_type = self.env['hr.leave.type'].search([('name', '=', 'Unpaid')], limit=1)
-        if employee:
-            # Get leave types ordered by sequence
-            leave_types = self.env['hr.leave.type'].search([], order='sequence asc')
-            leave_found = False
+        if res:
+            employee = self.env['hr.employee'].search([('user_id', '=', self.env.uid)], limit=1)
+            unpaid_leave_type = self.env['hr.leave.type'].search([('name', '=', 'Unpaid')], limit=1)
+            if employee:
+                # Get leave types ordered by sequence
+                leave_types = self.env['hr.leave.type'].search([], order='sequence asc')
+                leave_found = False
 
-            for leave_type in leave_types:
-                # Check if employee has remaining allocation
-                remaining_alloc = self.env['hr.leave.allocation'].search([
-                    ('employee_id', '=', employee.id),
-                    ('holiday_status_id', '=', leave_type.id),
-                    ('state', '=', 'validate')
-                ])
-                total_allocated = sum(a.number_of_days for a in remaining_alloc)
-                leaves_taken = self.env['hr.leave'].search([
-                    ('employee_id', '=', employee.id),
-                    ('holiday_status_id', '=', leave_type.id),
-                    ('state', 'not in', ['refuse', 'cancel'])
-                ])
-                total_taken = sum(l.number_of_days for l in leaves_taken)
-                available_days = total_allocated - total_taken
-                if available_days > 0:
-                    res['holiday_status_id'] = leave_type.id
-                    leave_found = True
-                    break
+                for leave_type in leave_types:
+                    # Check if employee has remaining allocation
+                    remaining_alloc = self.env['hr.leave.allocation'].search([
+                        ('employee_id', '=', employee.id),
+                        ('holiday_status_id', '=', leave_type.id),
+                        ('state', '=', 'validate')
+                    ])
+                    total_allocated = sum(a.number_of_days for a in remaining_alloc)
+                    leaves_taken = self.env['hr.leave'].search([
+                        ('employee_id', '=', employee.id),
+                        ('holiday_status_id', '=', leave_type.id),
+                        ('state', 'not in', ['refuse', 'cancel'])
+                    ])
+                    total_taken = sum(l.number_of_days for l in leaves_taken)
+                    available_days = total_allocated - total_taken
+                    if available_days > 0:
+                        res['holiday_status_id'] = leave_type.id
+                        leave_found = True
+                        break
 
-            if not leave_found and unpaid_leave_type:
-                res['holiday_status_id'] = unpaid_leave_type.id
+                if not leave_found and unpaid_leave_type:
+                    res['holiday_status_id'] = unpaid_leave_type.id
         return res
