@@ -415,6 +415,7 @@ class HrAttendance(models.Model):
     def _is_early_checkout(self):
         for rec in self:
             resource_calendar = rec._get_employee_calendar()
+            calendar_resource_attendances = rec._get_resource_calendar_attendance()
             if not resource_calendar:
                 raise ValidationError(_("Work Schedule is not configured today for this employee."))
             check_in_day = rec.check_in.date()
@@ -434,9 +435,17 @@ class HrAttendance(models.Model):
                 return False
             if half_day_leave:
                 avg_work_hour /= 2
-            if worked_hrs < avg_work_hour:
-                return True
+            # Check employee client visit
+            client_visit = self._check_employee_client_visit(rec.employee_id, calendar_resource_attendances)
+            # Check employee client visit shift
+            morning_shift = self._check_client_visit_in_morning_shift(rec.employee_id, calendar_resource_attendances)
+            if morning_shift:
+                avg_work_hour /= 2
+            if not client_visit:
+                if worked_hrs < avg_work_hour:
+                    return True
             return False
+        return None
 
     def _check_employee_client_visit(self, employee_id, calendar_resource_attendances):
         """Method to check employee client visit"""
@@ -444,8 +453,15 @@ class HrAttendance(models.Model):
         user_tz = self.env.user.tz or self.env.company.tz or 'UTC'
         tz = pytz.timezone(user_tz)
 
+        if self.check_in and not self.check_out:
+            shift_period = "morning"
+        elif self.check_in and self.check_out:
+            shift_period = "afternoon"
+        else:
+            return False
+
         morning_calendar_resource_attendances = calendar_resource_attendances.filtered(
-            lambda x: x.day_period == "morning")
+            lambda x: x.day_period == shift_period)
         hour_from = morning_calendar_resource_attendances[0].hour_from
         hour_to = morning_calendar_resource_attendances[0].hour_to
 
@@ -463,6 +479,36 @@ class HrAttendance(models.Model):
             ('start_time', '<=', work_to),
             ('end_time', '>', work_from)
         ], limit=1)
+        return client_visit_obj
+
+    def _check_client_visit_in_morning_shift(self, employee_id, calendar_resource_attendances):
+        """Return client visit for a specific shift (morning or afternoon)."""
+        today = fields.Date.context_today(employee_id)
+        user_tz = self.env.user.tz or self.env.company.tz or 'UTC'
+        tz = pytz.timezone(user_tz)
+
+        selected_attendance = calendar_resource_attendances.filtered(
+            lambda x: x.day_period == "morning"
+        )
+        if not selected_attendance:
+            return None
+
+        hour_from = selected_attendance[0].hour_from
+        hour_to = selected_attendance[0].hour_to
+
+        h_from, m_from = divmod(int(hour_from * 60), 60)
+        h_to, m_to = divmod(int(hour_to * 60), 60)
+
+        work_from = tz.localize(datetime.combine(today, time(hour=h_from, minute=m_from))).astimezone(pytz.UTC)
+        work_to = tz.localize(datetime.combine(today, time(hour=h_to, minute=m_to))).astimezone(pytz.UTC)
+
+        client_visit_obj = self.env['hr.client.visit'].search([
+            ('employee_id', '=', employee_id.id),
+            ('state', '=', 'approved'),
+            ('start_time', '<=', work_to),
+            ('end_time', '>', work_from)
+        ], limit=1)
+
         return client_visit_obj
 
     def _is_late_check_in(self):

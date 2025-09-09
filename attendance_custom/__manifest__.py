@@ -8,10 +8,10 @@
     "support": "",
     "depends": ['hr_attendance','mail'],
     "data": [
-        'data/auto_attendance_create.xml',
+        # 'data/auto_attendance_create.xml',
         'security/ir.model.access.csv',
-        'security/security.xml',
-        'views/emp_out_office_schedule.xml',
+        # 'security/security.xml',
+        # 'views/emp_out_office_schedule.xml',
     ],
     "license": "OPL-1",
 }
