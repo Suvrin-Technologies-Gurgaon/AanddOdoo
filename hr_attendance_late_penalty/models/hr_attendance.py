@@ -564,9 +564,9 @@ class HrAttendance(models.Model):
             allowed_count, leave_type_id = attendance._get_penalty_params()
             if not allowed_count or allowed_count == 0:
                 return False
-            if not leave_type_id:
-                raise ValidationError(
-                    _("Oops! It looks like the Penalty Leave Type hasn't been set up yet. Please contact your administrator to get it configured."))
+            # if not leave_type_id:
+            #     raise ValidationError(
+            #         _("Oops! It looks like the Penalty Leave Type hasn't been set up yet. Please contact your administrator to get it configured."))
             penalty_leaves = employee.leave_ids.filtered(
                 lambda x: x.state in ['validate'] and x.is_penalty_leave).sorted(lambda x: x.request_date_from,
                                                                                  reverse=True)
