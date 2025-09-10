@@ -33,6 +33,42 @@ class HrAttendance(models.Model):
     half_day_penalty = fields.Boolean(string="Half Day Penalty Applied", compute="_compute_half_day_penalty", store=True)
     full_day_penalty = fields.Boolean(string="Full Day Penalty Applied", compute="_compute_full_day_penalty", store=True)
 
+    #######################
+     # Compute Methods
+    #######################
+
+    @api.depends('check_in', 'check_out', 'auto_checkout', 'employee_id')
+    def _compute_worked_hours(self):
+        """Override to ensure auto-checkout uses evening shift end instead of midnight."""
+        for rec in self:
+            if rec.check_in and rec.check_out and rec.employee_id:
+                delta = rec.check_out - rec.check_in
+
+                if rec.auto_checkout:
+                    user_tz = timezone(rec.employee_id.tz or self.env.user.tz or "UTC")
+                    check_in_local = rec.check_in.replace(tzinfo=UTC).astimezone(user_tz)
+                    calendar = rec.employee_id.resource_calendar_id
+
+                    if calendar:
+                        weekday = str(check_in_local.weekday())
+                        shifts_today = calendar.attendance_ids.filtered(lambda s: s.dayofweek == weekday)
+
+                        if shifts_today:
+                            evening_shift = max(shifts_today, key=lambda s: s.hour_to)
+                            h_to = int(evening_shift.hour_to)
+                            m_to = int((evening_shift.hour_to - h_to) * 60)
+                            shift_end_local = datetime.combine(
+                                check_in_local.date(), time(hour=h_to, minute=m_to)
+                            )
+                            shift_end_local = user_tz.localize(shift_end_local)
+                            shift_end_utc = shift_end_local.astimezone(UTC).replace(tzinfo=None)
+                            effective_checkout = min(rec.check_out, shift_end_utc)
+                            delta = effective_checkout - rec.check_in
+
+                rec.worked_hours = delta.total_seconds() / 3600.0
+            else:
+                rec.worked_hours = 0.0
+
     @api.depends('missed_checkout_leave_id')
     def _compute_full_day_penalty(self):
         """Compute stored full-day penalty for filtering, reports, old records."""
@@ -206,15 +242,20 @@ class HrAttendance(models.Model):
                 attendance.reminder_sent = True
 
             # --- Auto checkout at midnight today (local)
-            yesterday_local = (now_utc.replace(tzinfo=UTC).astimezone(user_tz) - timedelta(days=1))
-            midnight_local = yesterday_local.replace(hour=23, minute=59, second=59, microsecond=0)
+            # yesterday_local = (now_utc.replace(tzinfo=UTC).astimezone(user_tz) - timedelta(days=1))
+            # midnight_local = yesterday_local.replace(hour=23, minute=59, second=59, microsecond=0)
 
             # Convert to UTC naive for DB storage
-            midnight_utc_naive = midnight_local.astimezone(UTC).replace(tzinfo=None)
+            # midnight_utc_naive = midnight_local.astimezone(UTC).replace(tzinfo=None)
 
-            if now_utc_naive >= midnight_utc_naive and not attendance.auto_checkout:
+            checkout_local = user_tz.localize(datetime.combine(check_in_local.date(), time(23, 59, 59)))
+
+            # Convert back to UTC naive for DB
+            checkout_utc_naive = checkout_local.astimezone(UTC).replace(tzinfo=None)
+
+            if now_utc_naive >= checkout_utc_naive and not attendance.auto_checkout:
                 attendance.write({
-                    'check_out': midnight_utc_naive,
+                    'check_out': checkout_utc_naive,
                     'auto_checkout': True,
                 })
                 # Create Full day Penalty Leave
