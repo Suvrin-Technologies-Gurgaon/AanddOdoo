@@ -27,11 +27,17 @@ class HrAttendance(models.Model):
     approved_user_id = fields.Many2one('res.users', "Approved User")
     auto_checkout = fields.Boolean(default=False, help="Marked True if auto checkout applied")
     reminder_sent = fields.Boolean(default=False)
+    is_local_tour = fields.Boolean(default=False)
     worked_day = fields.Float(string="Worked Days", compute="_compute_days", store=True)
     worked_extra_day = fields.Float(string="Worked Extra Days", compute="_compute_days", store=True)
     extra_day = fields.Float(string="Extra Days", compute="_compute_days", store=True)
     half_day_penalty = fields.Boolean(string="Half Day Penalty Applied", compute="_compute_half_day_penalty", store=True)
     full_day_penalty = fields.Boolean(string="Full Day Penalty Applied", compute="_compute_full_day_penalty", store=True)
+
+    @api.model
+    def _is_work_from_home(self, employee):
+        """Check if employee belongs to Work From Home group"""
+        return employee.user_id.has_group("hr_attendance_late_penalty.group_hr_attendance_work_from_home")
 
     #######################
      # Compute Methods
@@ -119,28 +125,83 @@ class HrAttendance(models.Model):
 
     def create_full_day_penalty_leave(self, attendance):
         """Method to create full day penalty leave"""
+        HrLeave = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True)
+
         leave_type_id = attendance.get_timeoff_type_sequentially()
+        if not leave_type_id:
+            # No leave type configured → skip
+            return False
+
         check_in_date = attendance.check_in.date()
 
+        has_morning_half_day = self.check_morning_half_day_leave(attendance)
+        has_evening_half_day = self.check_evening_half_day_leave(attendance)
+
+        # Default: full-day penalty
         vals = {
-            "name": "Full-day leave penalty applied due to missing checkout.",
-            "employee_id": attendance.employee_id and attendance.employee_id.id or False,
-            "holiday_status_id": leave_type_id or False,
+            "name": "Full-day leave penalty applied due to missing checkout",
+            "employee_id": attendance.employee_id.id,
+            "holiday_status_id": leave_type_id,
             "request_date_from": check_in_date,
             "request_date_to": check_in_date,
             "is_penalty_leave": True,
-            "state": "confirm"
+            "state": "confirm",
         }
 
-        if attendance.leave_id:
-            vals["name"] = "Missed checkout leave penalty"
-            vals["request_date_from_period"] = "pm"
-            vals["request_unit_half"] = True
+        # Case 1: Already has leave → skip
+        if (has_morning_half_day and attendance.leave_id) or (has_evening_half_day and attendance.leave_id):
+            return False
 
-        missed_checkout_leave_id = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True).create(vals)
-        attendance.sudo().write({
-            'missed_checkout_leave_id': missed_checkout_leave_id.id
-        })
+        # Case 2: Morning half-day available → create afternoon penalty
+        if has_morning_half_day and not attendance.leave_id:
+            vals.update({
+                "name": "Missed checkout leave penalty",
+                "request_date_from_period": "pm",
+                "request_unit_half": True,
+            })
+
+        # Case 3: Evening half-day available → create morning penalty
+        elif has_evening_half_day and not attendance.leave_id:
+            vals.update({
+                "name": "Missed checkout leave penalty",
+                "request_date_from_period": "am",
+                "request_unit_half": True,
+            })
+
+        # Case 4: Fallback (already has leave but still needs penalty)
+        elif attendance.leave_id:
+            vals.update({
+                "name": "Missed checkout leave penalty",
+                "request_date_from_period": "pm",
+                "request_unit_half": True,
+            })
+
+        # Create leave
+        leave = HrLeave.create(vals)
+        attendance.sudo().write({"missed_checkout_leave_id": leave.id})
+        return leave
+
+    def check_morning_half_day_leave(self, attendance):
+        """Method to check morning half day leave"""
+        check_morning_half_day = attendance.employee_id.leave_ids.filtered(
+            lambda
+                l: l.state == 'validate' and l.request_unit_half and l.request_date_from <= attendance.check_in.date() <= l.request_date_to
+                   and ((l.request_date_from == attendance.check_in.date() and l.request_date_from_period == "am")
+                        or (l.request_date_to == attendance.check_in.date())
+                        )
+        )
+        return check_morning_half_day
+
+    def check_evening_half_day_leave(self, attendance):
+        """Method to check evening half day leave"""
+        check_evening_half_day = attendance.employee_id.leave_ids.filtered(
+            lambda
+                l: l.state == 'validate' and l.request_unit_half and l.request_date_from <= attendance.check_in.date() <= l.request_date_to
+                   and ((l.request_date_from == attendance.check_in.date() and l.request_date_from_period == "pm")
+                        or (l.request_date_to == attendance.check_in.date())
+                        )
+        )
+        return check_evening_half_day
 
     @api.model
     def _cron_check_attendance(self):
@@ -456,7 +517,6 @@ class HrAttendance(models.Model):
     def _is_early_checkout(self):
         for rec in self:
             resource_calendar = rec._get_employee_calendar()
-            calendar_resource_attendances = rec._get_resource_calendar_attendance()
             if not resource_calendar:
                 raise ValidationError(_("Work Schedule is not configured today for this employee."))
             check_in_day = rec.check_in.date()
@@ -477,50 +537,44 @@ class HrAttendance(models.Model):
             if half_day_leave:
                 avg_work_hour /= 2
             # Check employee client visit
-            client_visit = self._check_employee_client_visit(rec.employee_id, calendar_resource_attendances)
+            client_visit, days_count = self._check_employee_client_visit(rec.employee_id)
             # Check employee client visit shift
-            morning_shift = self._check_client_visit_in_morning_shift(rec.employee_id, calendar_resource_attendances)
-            if morning_shift:
-                avg_work_hour /= 2
-            if not client_visit:
-                if worked_hrs < avg_work_hour:
-                    return True
+            # morning_shift = self._check_client_visit_in_morning_shift(rec.employee_id, calendar_resource_attendances)
+            # if morning_shift:
+            #     avg_work_hour /= 2
+            if client_visit and days_count == 1:
+                rec.is_local_tour = True
+                return False
+            else:
+                rec._evaluate_visit_and_open_next_day_window()
+            if worked_hrs < avg_work_hour:
+                return True
             return False
         return None
 
-    def _check_employee_client_visit(self, employee_id, calendar_resource_attendances):
+    def _check_employee_client_visit(self, employee_id):
         """Method to check employee client visit"""
         today = fields.Date.context_today(employee_id)
         user_tz = self.env.user.tz or self.env.company.tz or 'UTC'
         tz = pytz.timezone(user_tz)
 
-        if self.check_in and not self.check_out:
-            shift_period = "morning"
-        elif self.check_in and self.check_out:
-            shift_period = "afternoon"
-        else:
-            return False
+        # Convert date start and end to datetime in user timezone
+        date_start = tz.localize(datetime.combine(today, time.min)).astimezone(pytz.UTC)
+        date_end = tz.localize(datetime.combine(today, time.max)).astimezone(pytz.UTC)
 
-        morning_calendar_resource_attendances = calendar_resource_attendances.filtered(
-            lambda x: x.day_period == shift_period)
-        hour_from = morning_calendar_resource_attendances[0].hour_from
-        hour_to = morning_calendar_resource_attendances[0].hour_to
-
-        h_from = int(hour_from)
-        m_from = int((hour_from - h_from) * 60)
-        h_to = int(hour_to)
-        m_to = int((hour_to - h_to) * 60)
-
-        work_from = tz.localize(datetime.combine(today, time(hour=h_from, minute=m_from))).astimezone(pytz.UTC)
-        work_to = tz.localize(datetime.combine(today, time(hour=h_to, minute=m_to))).astimezone(pytz.UTC)
-
+        # Search visits within that date range
         client_visit_obj = self.env['hr.client.visit'].search([
             ('employee_id', '=', employee_id.id),
             ('state', '=', 'approved'),
-            ('start_time', '<=', work_to),
-            ('end_time', '>', work_from)
+            ('start_time', '<=', date_end),
+            ('end_time', '>=', date_start)
         ], limit=1)
-        return client_visit_obj
+
+        start_local = client_visit_obj.start_time.astimezone(tz).date()
+        end_local = client_visit_obj.end_time.astimezone(tz).date()
+        days_count = (end_local - start_local).days + 1
+
+        return client_visit_obj, days_count
 
     def _check_client_visit_in_morning_shift(self, employee_id, calendar_resource_attendances):
         """Return client visit for a specific shift (morning or afternoon)."""
@@ -552,6 +606,71 @@ class HrAttendance(models.Model):
 
         return client_visit_obj
 
+    def _consume_late_checkin_window_if_applicable(self):
+        """When employee checks in, consume the late window if within allowed time."""
+        for rec in self:
+            emp = rec.employee_id
+            if not emp.tomorrow_late_checkin_window_open or not rec.check_in:
+                continue
+            allowed_until = emp.tomorrow_late_checkin_window_until
+            if not allowed_until:
+                emp.write({
+                    "tomorrow_late_checkin_window_open": False,
+                    "tomorrow_late_checkin_window_until": False,
+                })
+                continue
+            if rec.check_in <= allowed_until:
+                # Allowed → consume
+                emp.write({
+                    "tomorrow_late_checkin_window_open": False,
+                    "tomorrow_late_checkin_window_until": False,
+                })
+            else:
+                # Expired → clear flag
+                emp.write({
+                    "tomorrow_late_checkin_window_open": False,
+                    "tomorrow_late_checkin_window_until": False,
+                })
+
+    def _evaluate_visit_and_open_next_day_window(self):
+        """Method to evaluate visit and open next day window"""
+        for rec in self:
+            emp = rec.employee_id
+            if not emp or not rec.check_out:
+                continue
+
+            visit = self.env["hr.client.visit"].search(
+                [("employee_id", "=", emp.id), ("end_time", "!=", False)],
+                order="end_time desc", limit=1
+            )
+            if not visit:
+                continue
+
+            tz_str = emp.user_id.tz or self.env.user.tz or "UTC"
+            try:
+                user_tz = pytz.timezone(tz_str)
+            except Exception:
+                user_tz = pytz.UTC
+
+            start_local = visit.start_time.replace(tzinfo=pytz.UTC).astimezone(user_tz)
+            end_local = visit.end_time.replace(tzinfo=pytz.UTC).astimezone(user_tz)
+            checkout_local = rec.check_out.replace(tzinfo=pytz.UTC).astimezone(user_tz)
+
+            spans_multi = end_local.date() > start_local.date()
+            same_date = checkout_local.date() == end_local.date()
+            checkout_after_23 = checkout_local.time() > time(23, 0, 0)
+
+            if spans_multi and same_date and checkout_after_23:
+                allowed_local_dt = datetime.combine(
+                    end_local.date() + timedelta(days=1), time(23, 0, 0)
+                )
+                allowed_local = user_tz.localize(allowed_local_dt)
+                allowed_utc = allowed_local.astimezone(pytz.UTC).replace(tzinfo=None)
+                emp.write({
+                    "tomorrow_late_checkin_window_open": True,
+                    "tomorrow_late_checkin_window_until": allowed_utc,
+                })
+
     def _is_late_check_in(self):
         for rec in self:
             calendar_resource_attendances = rec._get_resource_calendar_attendance()
@@ -581,11 +700,23 @@ class HrAttendance(models.Model):
             )
 
             # Check employee client visit
-            client_visit = self._check_employee_client_visit(rec.employee_id, calendar_resource_attendances)
-            if not client_visit:
-                if check_in_local > scheduled_start:
-                    return True
+            client_visit, days_count = self._check_employee_client_visit(rec.employee_id)
+            if client_visit:
+                rec.is_local_tour = True
                 return None
+            else:
+                consume = rec._consume_late_checkin_window_if_applicable()
+                if consume:
+                    return None
+
+                # --- Late logic ---
+            if check_morning_half_day:
+                # If half-day morning leave, apply 1 mins grace
+                grace_time = scheduled_start + timedelta(minutes=1)
+                return check_in_local > grace_time
+            else:
+                # Otherwise use old logic (any check-in after shift start = late)
+                return check_in_local > scheduled_start
         return None
 
     def get_last_date_of_current_month(self):
@@ -677,6 +808,7 @@ class HrAttendance(models.Model):
 
     def _create_half_day_penalty_leave(self):
         """Method to create half day penalty leave"""
+        HrLeave = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True)
         for attendance in self:
             if attendance._deserve_penalty():
                 allowed_count, leave_type_id = attendance._get_penalty_params()
@@ -686,32 +818,41 @@ class HrAttendance(models.Model):
                 leave_type_id = attendance.get_timeoff_type_sequentially()
 
                 check_in_date = attendance.check_in.date()
-                # date_from, date_to = attendance.employee_id._check_leave_date(check_in_date, check_in_date)
+
+                # Determine half-day availability
+                has_morning_half_day = self.check_morning_half_day_leave(attendance)
+                has_evening_half_day = self.check_evening_half_day_leave(attendance)
+
                 vals = {
-                    "employee_id": attendance.employee_id and attendance.employee_id.id or False,
-                    "holiday_status_id": leave_type_id or False,
+                    "employee_id": attendance.employee_id.id,
+                    "holiday_status_id": leave_type_id,
                     "request_date_from": check_in_date,
                     "request_date_to": check_in_date,
                     "request_unit_half": True,
                     "is_penalty_leave": True,
-                    "state": "confirm"
+                    "state": "confirm",
                 }
+
+                # Case 1: Late check-in
                 if attendance.is_late and not attendance.is_early_checkout:
                     vals["name"] = "Late Check-in Penalty"
-                    vals["request_date_from_period"] = "am"
-                    leave = self.env['hr.leave'].sudo().with_context(leave_skip_state_check=True).create(vals)
-                    attendance.sudo().write({
-                        'leave_id': leave.id
-                    })
-                elif attendance.is_early_checkout:
+                    vals["request_date_from_period"] = "pm" if has_morning_half_day else "am"
+
+                    leave = HrLeave.create(vals)
+                    attendance.sudo().write({"leave_id": leave.id})
+                    continue
+
+                # Case 2: Early check-out
+                if attendance.is_early_checkout:
+                    # Prevent duplicate leave creation
+                    if (has_morning_half_day and attendance.leave_id) or (has_evening_half_day and attendance.leave_id):
+                        continue
+
                     vals["name"] = "Early Check-out Penalty"
                     vals["request_date_from_period"] = "pm"
-                    early_checkout_leave_id = self.env['hr.leave'].sudo().with_context(
-                        leave_skip_state_check=True).create(vals)
-                    attendance.sudo().write({
-                        'early_checkout_leave_id': early_checkout_leave_id.id
-                    })
-                else:
-                    pass
+
+                    early_leave = HrLeave.create(vals)
+                    attendance.sudo().write({"early_checkout_leave_id": early_leave.id})
+                    continue
             return None
         return None

@@ -7,6 +7,28 @@ class HrEmployee(models.Model):
     _inherit = 'hr.employee'
 
     leave_ids = fields.One2many('hr.leave', 'employee_id', string='Leaves')
+    tomorrow_late_checkin_window_open = fields.Boolean(
+        string="Tomorrow Late Check-in Window Open",
+        help="If True, employee can check-in late until tomorrow_late_checkin_window_until.",
+        default=False,
+    )
+    tomorrow_late_checkin_window_until = fields.Datetime(
+        string="Late Check-in Allowed Until (UTC)",
+        help="UTC datetime until which next-day late check-in is allowed.",
+    )
+
+    def _clear_expired_late_windows(self):
+        """Clear expired windows daily (via cron)."""
+        now = fields.Datetime.now()
+        expired = self.search([
+            ("tomorrow_late_checkin_window_open", "=", True),
+            ("tomorrow_late_checkin_window_until", "<", now),
+        ])
+        if expired:
+            expired.write({
+                "tomorrow_late_checkin_window_open": False,
+                "tomorrow_late_checkin_window_until": False,
+            })
 
     def _attendance_action_change(self, geo_information=None):
         attendance = super()._attendance_action_change(geo_information=geo_information)
@@ -18,13 +40,17 @@ class HrEmployee(models.Model):
                 if first_attendance != attendance:
                     if first_attendance.employee_id and first_attendance.check_in and first_attendance.check_out:
                         raise ValidationError(_("%s - Already attendance marked for today", first_attendance.employee_id.name))
-                if first_attendance and first_attendance._is_late_check_in():
-                    if first_attendance.late_reason != 'late_in':
-                        first_attendance.sudo().write({
-                            'late_reason': 'late_in',
-                            'is_late': True
-                        })
-                    first_attendance._create_half_day_penalty_leave()
+
+                # Check Work from home
+                if not self._is_work_from_home(attendance.employee_id):
+                    if first_attendance and first_attendance._is_late_check_in():
+                        if first_attendance.late_reason != 'late_in':
+                            first_attendance.sudo().write({
+                                'late_reason': 'late_in',
+                                'is_late': True
+                            })
+                        first_attendance._create_half_day_penalty_leave()
+
             elif attendance.check_in and attendance.check_out:
                 self._check_early_checkout(attendance)
         return attendance
@@ -34,14 +60,18 @@ class HrEmployee(models.Model):
         last_attendance = self._get_first_or_last_attendance_of_the_day(attendance.check_out)
         if last_attendance != attendance:
             return attendance
-        if last_attendance and last_attendance._is_early_checkout():
-            if last_attendance.late_reason != 'early_out':
-                last_attendance.sudo().write({
-                    'late_reason': 'early_out',
-                    'is_early_checkout': True
-                })
-            last_attendance._create_half_day_penalty_leave()
-            return None
+
+        # Check Work from home
+        if not self._is_work_from_home(attendance.employee_id):
+            if last_attendance and last_attendance._is_early_checkout():
+                if last_attendance.late_reason != 'early_out':
+                    last_attendance.sudo().write({
+                        'late_reason': 'early_out',
+                        'is_early_checkout': True
+                    })
+                last_attendance._create_half_day_penalty_leave()
+                return None
+
         return None
 
     def _get_first_or_last_attendance_of_the_day(self, date_to_check, last=False):

@@ -17,6 +17,7 @@
                 <field name="is_late" invisible="1"/>
                 <field name="is_early_checkout" invisible="1"/>
                 <field name="is_send_approval" invisible="1"/>
+                <field name="is_local_tour" invisible="1"/>
                 <field name="is_manager" invisible="1"/>
                 <field name="is_approved" invisible="1"/>
                 <field name="leave_id" invisible="1"/>
@@ -30,8 +31,10 @@
                         invisible="not is_early_checkout or is_late"/>
                 <widget name="web_ribbon" title="Late And Early" bg_color="text-bg-danger"
                         invisible="not (is_late and is_early_checkout)"/>
-                <widget name="web_ribbon" title="Waiting For Late Edit Approval" bg_color="text-bg-info"
-                        invisible="is_late or is_early_checkout and not is_send_approval"/>
+<!--                <widget name="web_ribbon" title="Waiting For Late Edit Approval" bg_color="text-bg-info"-->
+<!--                        invisible="not (is_late or is_early_checkout) and is_send_approval"/>-->
+                <widget name="web_ribbon" title="Exempted" bg_color="text-bg-info"
+                        invisible="not is_local_tour"/>
                 <widget name="web_ribbon" title="Late Edit Approved" bg_color="text-bg-success"
                         invisible="not is_approved"/>
             </xpath>
@@ -61,6 +64,10 @@
                 <field name="worked_day"/>
                 <field name="worked_extra_day" optional="hide"/>
                 <field name="extra_day" optional="hide"/>
+            </xpath>
+
+            <xpath expr="//list" position="attributes">
+                <attribute name="decoration-danger">is_late or is_early_checkout</attribute>
             </xpath>
         </field>
     </record>
