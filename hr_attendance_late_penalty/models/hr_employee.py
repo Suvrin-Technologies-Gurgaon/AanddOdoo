@@ -30,6 +30,11 @@ class HrEmployee(models.Model):
                 "tomorrow_late_checkin_window_until": False,
             })
 
+    @api.model
+    def _is_work_from_home(self, employee):
+        """Check if employee belongs to Work From Home group"""
+        return employee.user_id.has_group("hr_attendance_late_penalty.group_hr_attendance_work_from_home")
+
     def _attendance_action_change(self, geo_information=None):
         attendance = super()._attendance_action_change(geo_information=geo_information)
         if attendance:

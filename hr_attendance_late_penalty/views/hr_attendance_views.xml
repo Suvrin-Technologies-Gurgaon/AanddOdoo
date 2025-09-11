@@ -13,6 +13,18 @@
                         type="object" name="action_checkin_edit_approve"
                         invisible="not is_late or not is_send_approval or not is_manager or is_approved"/>
             </xpath>
+            <xpath expr="//field[@name='worked_hours']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='overtime_hours']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='validated_overtime_hours']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_refuse_overtime']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
             <xpath expr="//field[@name='check_out']" position="after">
                 <field name="is_late" invisible="1"/>
                 <field name="is_early_checkout" invisible="1"/>
@@ -23,6 +35,9 @@
                 <field name="leave_id" invisible="1"/>
                 <field name="early_checkout_leave_id" invisible="1"/>
                 <field name="missed_checkout_leave_id" invisible="1"/>
+            </xpath>
+            <xpath expr="//field[@name='worked_hours']" position="after">
+                <field name="worked_day"/>
             </xpath>
             <xpath expr="//sheet/group[1]" position="before">
                 <widget name="web_ribbon" title="Late" bg_color="text-bg-danger"
@@ -48,6 +63,16 @@
         <field name="arch" type="xml">
             <!-- Hide hour fields -->
             <xpath expr="//field[@name='worked_hours']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='overtime_hours']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='validated_overtime_hours']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='worked_hours']" position="attributes">
                 <attribute name="optional">hide</attribute>
             </xpath>
             <xpath expr="//field[@name='overtime_hours']" position="attributes">
@@ -62,8 +87,6 @@
                 <field name="half_day_penalty" widget="boolean_toggle"/>
                 <field name="full_day_penalty" widget="boolean_toggle"/>
                 <field name="worked_day"/>
-                <field name="worked_extra_day" optional="hide"/>
-                <field name="extra_day" optional="hide"/>
             </xpath>
 
             <xpath expr="//list" position="attributes">

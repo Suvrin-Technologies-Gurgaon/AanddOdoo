@@ -41,7 +41,6 @@
 
         <record id="group_hr_attendance_work_from_home" model="res.groups">
             <field name="name">Work From Home</field>
-            <field name="category_id" ref="base.module_category_human_resources"/>
         </record>
     </data>
 </odoo>
