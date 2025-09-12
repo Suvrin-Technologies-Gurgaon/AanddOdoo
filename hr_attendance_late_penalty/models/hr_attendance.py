@@ -89,21 +89,14 @@ class HrAttendance(models.Model):
             morning_leave = bool(rec.check_morning_half_day_leave(rec))
             evening_leave = bool(rec.check_evening_half_day_leave(rec))
             has_half_day_leave = morning_leave or evening_leave
-            is_wfh = rec.employee_id._is_work_from_home(rec.employee_id)
-
-            # Defaults
-            rec.half_day_penalty = False
-            rec.full_day_penalty = False
 
             # Full-day penalty only if missed checkout exists
             if rec.missed_checkout_leave_id:
-                if has_half_day_leave and is_wfh:
-                    rec.full_day_penalty = False
+                if has_half_day_leave:
                     rec.half_day_penalty = True
                 elif (
                         not rec.leave_id
                         or not rec.early_checkout_leave_id
-                        or has_half_day_leave
                 ):
                     rec.full_day_penalty = True
 
@@ -296,8 +289,7 @@ class HrAttendance(models.Model):
     @api.model
     def _cron_check_attendance(self):
         """Cron to remind + auto-checkout employees with timezone-safe handling."""
-        now_utc = datetime(2025, 9, 12, 00, 1, 1)
-        # now_utc = fields.Datetime.now()  # naive UTC
+        now_utc = fields.Datetime.now()  # naive UTC
         now_utc_naive = now_utc.replace(tzinfo=None)
 
         # Get all open attendances
@@ -340,6 +332,15 @@ class HrAttendance(models.Model):
             weekday = str(now_utc.replace(tzinfo=UTC).astimezone(user_tz).weekday())
             shifts_today = calendar.attendance_ids.filtered(lambda s: s.dayofweek == weekday)
             if not shifts_today:
+                checkout_local = user_tz.localize(datetime.combine(check_in_local.date(), time(23, 59, 59)))
+                checkout_utc_naive = checkout_local.astimezone(UTC).replace(tzinfo=None)
+
+                if now_utc_naive >= checkout_utc_naive and not attendance.auto_checkout:
+                    attendance.write({
+                        'check_out': checkout_utc_naive,
+                        'auto_checkout': True,
+                    })
+                self.create_full_day_penalty_leave(attendance)
                 continue
 
             # Last shift = afternoon shift
@@ -809,7 +810,7 @@ class HrAttendance(models.Model):
                     return None
 
                 # --- Late logic ---
-            if period == "evening":
+            if period == "afternoon":
                 # If half-day morning leave, apply 1 mins grace
                 grace_time = scheduled_start + timedelta(minutes=1)
                 return check_in_local > grace_time
