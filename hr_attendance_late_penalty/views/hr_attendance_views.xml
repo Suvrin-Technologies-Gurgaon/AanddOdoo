@@ -53,6 +53,12 @@
                 <widget name="web_ribbon" title="Late Edit Approved" bg_color="text-bg-success"
                         invisible="not is_approved"/>
             </xpath>
+            <field name="check_in" position="attributes">
+                <attribute name="readonly">check_in != False</attribute>
+            </field>
+            <field name="check_out" position="attributes">
+                <attribute name="readonly">check_out != False</attribute>
+            </field>
         </field>
     </record>
 
