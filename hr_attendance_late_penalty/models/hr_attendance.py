@@ -33,6 +33,8 @@ class HrAttendance(models.Model):
     extra_day = fields.Float(string="Extra Days", compute="_compute_work_day", store=True)
     half_day_penalty = fields.Boolean(string="Half Day Penalty Applied", compute="_compute_half_day_penalty", store=True)
     full_day_penalty = fields.Boolean(string="Full Day Penalty Applied", compute="_compute_full_day_penalty", store=True)
+    not_checkin_penalty_allowed = fields.Boolean(default=False)
+    not_checkout_penalty_allowed = fields.Boolean(default=False)
 
     #######################
      # Compute Methods
@@ -99,6 +101,7 @@ class HrAttendance(models.Model):
                         or not rec.early_checkout_leave_id
                 ):
                     rec.full_day_penalty = True
+                    rec.half_day_penalty = False
 
     @api.depends('leave_id', 'early_checkout_leave_id')
     def _compute_half_day_penalty(self):
@@ -145,7 +148,13 @@ class HrAttendance(models.Model):
             # --- If penalty does NOT apply, follow forgiving rules ---
             if not deserve_penalty:
                 # penalties forgiven => full day
-                if has_late_penalty or has_early_penalty:
+                if rec.not_checkin_penalty_allowed and rec.not_checkout_penalty_allowed:
+                    rec.worked_day = 0.0
+                    continue
+                elif (rec.not_checkin_penalty_allowed or rec.not_checkout_penalty_allowed) and (has_late_penalty or has_early_penalty):
+                    rec.worked_day = 0.5
+                    continue
+                elif has_late_penalty or has_early_penalty:
                     rec.worked_day = 1.0
                     continue
                 # two half-day leaves => full day
@@ -289,7 +298,8 @@ class HrAttendance(models.Model):
     @api.model
     def _cron_check_attendance(self):
         """Cron to remind + auto-checkout employees with timezone-safe handling."""
-        now_utc = fields.Datetime.now()  # naive UTC
+        # now_utc = fields.Datetime.now()  # naive UTC
+        now_utc = (datetime.now() + timedelta(days=1)).replace(hour=00, minute=1, second=1, microsecond=0)
         now_utc_naive = now_utc.replace(tzinfo=None)
 
         # Get all open attendances
@@ -608,26 +618,41 @@ class HrAttendance(models.Model):
 
     def _is_early_checkout(self):
         for rec in self:
-            resource_calendar = rec._get_employee_calendar()
-            if not resource_calendar:
+            # resource_calendar = rec._get_employee_calendar()
+            calendar_resource_attendances = rec._get_resource_calendar_attendance()
+            if not calendar_resource_attendances:
                 raise ValidationError(_("Work Schedule is not configured today for this employee."))
-            check_in_day = rec.check_in.date()
-            half_day_leave = rec.employee_id.leave_ids.filtered(
-                lambda l: l.state == 'validate'
-                          and l.request_unit_half
-                          and l.request_date_from <= rec.check_in.date() <= l.request_date_to
-                          and (
-                                  (l.request_date_from == check_in_day and l.request_date_from_period in ["am", "pm"])
-                                  or (l.request_date_to == check_in_day and l.request_date_to_period in ["am", "pm"])
-                          ))
-            worked_hrs = sum(
-                rec.employee_id.attendance_ids.filtered(lambda x: x.check_in.date() == check_in_day).mapped(
-                    'worked_hours'))
-            avg_work_hour = resource_calendar.hours_per_day
-            if not avg_work_hour or avg_work_hour == 0:
-                return False
-            if half_day_leave:
-                avg_work_hour /= 2
+            # if not resource_calendar:
+            #     raise ValidationError(_("Work Schedule is not configured today for this employee."))
+            check_out_date = rec.check_out.date()
+            check_evening_half_day = rec.employee_id.leave_ids.filtered(
+                lambda l: l.state == 'validate' and l.request_unit_half and l.request_date_from == check_out_date
+                          and l.request_date_from_period == "pm")
+
+            # worked_hrs = sum(
+            #     rec.employee_id.attendance_ids.filtered(lambda x: x.check_in.date() == check_in_day).mapped(
+            #         'worked_hours'))
+            # avg_work_hour = resource_calendar.hours_per_day
+            # if not avg_work_hour or avg_work_hour == 0:
+            #     return False
+            # if half_day_leave:
+            #     avg_work_hour /= 2
+
+            period = 'morning' if check_evening_half_day else 'afternoon'
+            actual_check_in_calendar_resource_attendance = calendar_resource_attendances.filtered(
+                lambda x: x.day_period == period)
+            if not actual_check_in_calendar_resource_attendance:
+                actual_check_in_calendar_resource_attendance = min(calendar_resource_attendances.mapped('hour_from'))
+            start_hour = actual_check_in_calendar_resource_attendance[0].hour_from
+            end_hour = actual_check_in_calendar_resource_attendance[0].hour_to
+            emp_tz = pytz.timezone(rec.employee_id.tz or self.env.user.tz or "UTC")
+            check_out_local = fields.Datetime.context_timestamp(rec, rec.check_out).astimezone(emp_tz)
+
+            scheduled_end = datetime.combine(
+                check_out_local.date(),
+                time(hour=int(end_hour), minute=int((end_hour % 1) * 60)),
+                tzinfo=check_out_local.tzinfo  # match timezone
+            )
             # Check employee client visit
             client_visit, days_count = self._check_employee_client_visit(rec.employee_id)
             # Check employee client visit shift
@@ -642,10 +667,7 @@ class HrAttendance(models.Model):
                     rec._evaluate_visit_and_open_next_day_window(client_visit)
                     return False
 
-            # If no client_visit OR after handling client_visit logic
-            if worked_hrs < avg_work_hour:
-                return True
-            return False
+            return check_out_local < scheduled_end
         return None
 
     def _check_employee_client_visit(self, employee_id):
@@ -828,48 +850,73 @@ class HrAttendance(models.Model):
         return first_date_of_current_month, last_date_of_current_month
 
     def _deserve_penalty(self):
-        """Method to find deserve penalty"""
+        """Method to check if employee deserves penalty"""
         for attendance in self:
             if not attendance.employee_id:
                 raise ValidationError(_("Cannot proceed without employee."))
+
             employee = attendance.employee_id
             allowed_count, leave_type_id = attendance._get_penalty_params()
             if not allowed_count or allowed_count == 0:
                 return False
-            # if not leave_type_id:
-            #     raise ValidationError(
-            #         _("Oops! It looks like the Penalty Leave Type hasn't been set up yet. Please contact your administrator to get it configured."))
-            penalty_leaves = employee.leave_ids.filtered(
-                lambda x: x.state in ['validate'] and x.is_penalty_leave).sorted(lambda x: x.request_date_from,
-                                                                                 reverse=True)
-            recent_penalty_leave = penalty_leaves and penalty_leaves[0] or False
+
             emp_tz = pytz.timezone(employee.tz or self.env.user.tz or "UTC")
+            first_date, last_date = self.get_last_date_of_current_month()
 
-            last_leave_date = fields.Datetime.context_timestamp(employee, employee.create_date).astimezone(emp_tz)
+            # Convert current check-in/out
+            # check_in_local = attendance.check_in and fields.Datetime.context_timestamp(
+            #     attendance, attendance.check_in).astimezone(emp_tz)
+            check_out_local = attendance.check_out and fields.Datetime.context_timestamp(
+                attendance, attendance.check_out).astimezone(emp_tz)
 
-            if recent_penalty_leave:
-                last_leave_request_date_to = recent_penalty_leave.request_date_to
-                calendar_resource_attendances = attendance._get_resource_calendar_attendance()
-                if not calendar_resource_attendances:
-                    raise (_("Work Schedule is not configured."))
-                # check_in_local = fields.Datetime.context_timestamp(attendance, attendance.check_in).astimezone(emp_tz)
+            check_in_local = emp_tz.localize(datetime(2025, 9, 13, 8, 0, 0))
 
-                schedule_hours_to = min(
-                    calendar_resource_attendances.filtered(lambda x: x.day_period == "morning").mapped('hour_to'))
-                last_leave_date = datetime.combine(
-                    last_leave_request_date_to,
-                    time(hour=int(schedule_hours_to), minute=int((schedule_hours_to % 1) * 60)),
-                    tzinfo=emp_tz  # match timezone
-                )
+            # Track both penalties and soft violations
+            hard_penalty_today = False
+            soft_violation_today = 0
 
-            first_date_of_current_month, last_date_of_current_month = self.get_last_date_of_current_month()
-            late_attendances = employee.attendance_ids.filtered(
-                lambda x: (x.late_reason and x.check_in and first_date_of_current_month
-                           <= fields.Datetime.context_timestamp(x, x.check_in).astimezone(
-                            emp_tz) <= last_date_of_current_month))
+            # 🔹 Check-in logic
+            if check_in_local and not check_out_local and check_in_local.time() > time(11, 0):
+                hard_penalty_today = True
+                attendance.not_checkin_penalty_allowed = True
+            elif check_in_local and not check_out_local and attendance.late_reason:
+                soft_violation_today += 1
 
-            # late_attendances = employee.attendance_ids.filtered(lambda x: x.late_reason != False and x.check_in  > last_leave_date)
-            if late_attendances and len(late_attendances) > allowed_count:
+            # 🔹 Check-out logic
+            if check_out_local and check_out_local.time() < time(16, 0):
+                hard_penalty_today = True
+                attendance.not_checkout_penalty_allowed = True
+            elif check_out_local and attendance.late_reason:
+                soft_violation_today += 1
+
+            # If today has a hard penalty → return immediately
+            if hard_penalty_today:
+                return True
+
+            # 🔹 Otherwise count monthly soft violations
+            monthly_soft_violations = 0
+            attendances_in_month = employee.attendance_ids.filtered(
+                lambda x: x.check_in
+                          and first_date <= fields.Datetime.context_timestamp(x, x.check_in).astimezone(
+                    emp_tz) <= last_date
+            )
+
+            for att in attendances_in_month:
+                att_check_in = att.check_in and fields.Datetime.context_timestamp(att, att.check_in).astimezone(emp_tz)
+                att_check_out = att.check_out and fields.Datetime.context_timestamp(att, att.check_out).astimezone(
+                    emp_tz)
+
+                # Count soft violations only (not hard penalties)
+                if att_check_in and att_check_in.time() <= time(11, 0) and att.late_reason:
+                    monthly_soft_violations += 1
+                if att_check_out and att_check_out.time() >= time(16, 0) and att.late_reason:
+                    monthly_soft_violations += 1
+
+            # Add today's soft violations
+            monthly_soft_violations += soft_violation_today
+
+            # Compare against allowed days
+            if monthly_soft_violations > allowed_count:
                 return True
             return False
         return None
